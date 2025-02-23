@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人内容管理平台</title>
+    <!-- 添加初始化样式 -->
+    <style>
+        /* 初始化样式，防止闪烁 */
+        html, body {
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* 添加预加载动画 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+        
+        body.loaded .loading-overlay {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+    
+
+        .blog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+          
+        }
+
+        .blog-header h3 {
+            font-size: 18px;
+            color: #202124;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .blog-header h3 i {
+            color: #1a73e8;
+            font-size: 16px;
+        }
+
+        .view-all {
+            font-size: 14px;
+            color: #1a73e8;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .view-all:hover {
+            color: #174ea6;
+            background: rgba(26, 115, 232, 0.1);
+        }
+
+        .view-all i {
+            font-size: 12px;
+        }
+
+        .blog-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 5px ;
+        }
+
+        .blog-item {
+            padding: 12px !important;
+            background: #f8f9fa;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .blog-item:hover {
+            background: #ffffff;
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .blog-item-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .blog-title {
+            margin: 0;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+
+        .blog-title a {
+            color: #202124;
+            text-decoration: none;
+            transition: color 0.3s ease;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            padding: 0;
+        }
+
+        .blog-title a:hover {
+            color: #1a73e8;
+        }
+
+        .post-excerpt {
+            margin: 0;
+            font-size: 13px;
+            color: #5f6368;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: #80868b;
+            margin-top: 4px;
+            padding: 0;
+        }
+
+        .post-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .post-meta i {
+            font-size: 12px;
+            color: #1a73e8;
+        }
+
+        /* 覆盖卡片悬停效果 */
+        .status-card,
+        .status-card:hover {
+            transform: none !important;
+            transition: none !important;
+        }
+
+        /* 进度条基础样式优化 */
+        .countdown-status {
+            padding: 12px;
+            background: #ffffff;
+            border-radius: 10px;
+        }
+
+        .countdown-container {
+            margin-top: 6px;
+        }
+
+        .integrated-progress {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        /* 进度信息布局优化 */
+        .progress-info {
+            position: absolute;
+            right: 40px;
+            top: 450%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 2;
+        }
+
+        /* 隐藏周进度信息 */
+        .week-progress .progress-info {
+            display: none;
+        }
+        .quarter-progress .progress-info{
+            display: none;
+        }
+        .progress-info::after {
+            display: none;
+        }
+
+        .progress-label {
+            display: none;
+        }
+
+        .progress-label::before {
+            content: '';
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+
+        .main-progress .progress-label::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234285f4'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z'/%3E%3Cpath d='M12 7v5l4.25 2.52.77-1.28-3.52-2.09V7z'/%3E%3C/svg%3E");
+        }
+
+        .quarter-progress .progress-label::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2334a853'%3E%3Cpath d='M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z'/%3E%3C/svg%3E");
+        }
+
+        .week-progress .progress-label::before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ea4335'%3E%3Cpath d='M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z'/%3E%3Cpath d='M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z'/%3E%3C/svg%3E");
+        }
+
+        /* 进度值显示 */
+        .progress-values {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .progress-value {
+            font-size: 11px;
+            font-weight: 600;
+            color: #1a73e8;
+        }
+
+        .progress-detail {
+            font-size: 9px;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        /* 进度条容器布局优化 */
+        .week-progress, .quarter-progress, .progress-overview {
+            display: flex;
+            align-items: center;
+            position: relative;
+            
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+
+     
+
+        /* 进度条容器 */
+        .progress-bar-container {
+            height: 6px;
+            flex: 1;
+            position: relative;
+            margin: 0;
+            background-color: #f1f3f4;
+            border-radius: 3px;
+        }
+
+        /* 进度条样式 */
+        .progress-bar {
+            height: 100%;
+            width: var(--progress-width, 0%);  /* 使用CSS变量作为实际宽度 */
+            position: relative;
+            border-radius: 3px;
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: none;  /* 初始状态不显示动画 */
+            opacity: 0;  /* 初始状态透明 */
+            transform-origin: left center;
+        }
+
+        /* 添加进度条动画关键帧 */
+        @keyframes progressAnimation {
+            0% {
+                transform: scaleX(0);
+                opacity: 0;
+            }
+            20% {
+                opacity: 1;
+            }
+            100% {
+                transform: scaleX(1);
+                opacity: 1;
+            }
+        }
+
+        /* 进度条动画激活状态 */
+        .progress-bar.animate {
+            animation: progressAnimation 1.5s ease-out forwards;
+            opacity: 1;
+        }
+
+        /* 进度标记样式调整 */
+        .progress-marker {
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.7);
+            z-index: 1;
+        }
+
+        /* 年度季度标记位置 */
+        .progress-marker.q1 { left: 25%; }
+        .progress-marker.q2 { left: 50%; }
+        .progress-marker.q3 { left: 75%; }
+
+        /* 季度月份标记位置 */
+        .progress-marker.m1 { left: 33.33%; }
+        .progress-marker.m2 { left: 66.66%; }
+
+        /* 周天数标记位置 */
+        .progress-marker.d1 { left: 16.66%; }
+        .progress-marker.d2 { left: 33.33%; }
+        .progress-marker.d3 { left: 50%; }
+        .progress-marker.d4 { left: 66.66%; }
+        .progress-marker.d5 { left: 83.33%; }
+        .progress-marker.d6 { left: 100%; }
+
+        /* 调整指示器位置 */
+        .day-indicators {
+            position: absolute;
+            bottom: -6px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+        }
+
+        .day-indicator {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .day-indicator i {
+            font-size: 3px;
+            color: #ea4335;
+        }
+
+        .day-indicator.active i {
+            font-size: 4px;
+            color: #ea4335;
+        }
+
+        .day-indicator.passed i {
+            color: #f08178;
+        }
+
+        /* 年度刻度位置调整 */
+        .year-scale {
+            position: absolute;
+            bottom: -14px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+            font-size: 9px;
+            color: #666;
+        }
+
+        /* 进度条配色方案 */
+        #year-progress {
+            background: linear-gradient(90deg, #4285f4, #709fee);
+        }
+
+        #quarter-progress {
+            background: linear-gradient(90deg, #34a853, #71c169);
+        }
+
+        #week-progress {
+            background: linear-gradient(90deg, #ea4335, #f08178);
+        }
+
+        /* 状态标题优化 */
+        .status-header h3 {
+            font-size: 13px;
+            color: #202124;
+            margin: 0 0 10px 0;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-header h3::before {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23202124'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+
+        /* 悬停效果 */
+        .integrated-progress:hover .progress-bar {
+            filter: brightness(1.05);
+        }
+
+        .progress-info:hover .progress-value {
+            transform: scale(1.05);
+            transition: transform 0.2s ease;
+        }
+
+        /* 状态卡片样式优化 */
+        .status-card {
+            padding: 12px 10px;
+            background: #ffffff;
+            border-radius: 10px;
+        }
+
+        .time-display {
+            display: flex;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .current-time {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .current-time .time {
+            font-size: 28px;
+            font-weight: 600;
+            color: #202124;
+            line-height: 1.2;
+        }
+
+        .current-time .date {
+            font-size: 14px;
+            color: #5f6368;
+            line-height: 1.2;
+        }
+
+        /* 移除分割线相关样式 */
+        .time-divider {
+            display: none;
+        }
+
+        /* 进度详情区域布局优化 */
+        .progress-detail-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+    </style>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"> 
+    <!-- 自定义样式 -->
+    <link rel="stylesheet" href="assets/css/common.css"> 
+</head>
+<body>
+    <div class="screen-animation">
+        <div class="screen-slice left"></div>
+        <div class="screen-slice middle"></div>
+        <div class="screen-slice right"></div>
+    </div>
+    <div class="bg-pattern"></div>
+   
+    <div class="home">
+        <div class="marquee-container">
+            <div class="marquee" id="marquee">
+                <span>2025 DONE FIRST, PERFECT LATER.</span>
+            </div>
+        </div>
+
+        <!-- 卡片横向排列容器 -->
+        <div class="cards-container" id="cardsContainer" >
+            <!-- 个人信息卡片 -->
+            <section class="card-base profile-card" style="display: none;">
+                <!-- <div class="avatar">
+                    <img src="assets/avatar.jpg" alt="个人头像">
+                </div> -->
+                <div class="profile-info">
+                    <h2>小白</h2>
+                    <p>全栈开发工程师（硬件除外） / 美食爱好者 / 健身达人 / 摄影爱好者 / 动漫爱好者 </p>
+                    <p class="bio"> Just do it done </p>
+                    <div class="social-links">
+                        <a href="https://github.com/yourusername" target="_blank" title="GitHub">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="https://twitter.com/yourusername" target="_blank" title="Twitter">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="mailto:your.email@example.com" title="Email">
+                            <i class="fas fa-envelope"></i>
+                        </a>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 状态卡片 -->
+            <section class="card-base status-card">
+                <div class="time-display">
+                    <div class="current-time">
+                        <span class="time">--:--:--</span>
+                        <span class="date">---- / -- / --</span>
+                    </div>
+                    
+                </div>
+                
+                    
+                    
+                        
+                            <div class="progress-detail-section">
+                                <div class="week-progress">
+                                    <div class="progress-info">
+                                        <span class="progress-label">周进度</span>
+                                        <div class="progress-values">
+                                            <span class="progress-value" id="countdown-week">--%</span>
+                                            <span class="progress-detail" id="week-detail">第 - 天</span>
+                                        </div>
+                                    </div>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar" id="week-progress">
+                                            <div class="progress-marker d1"></div>
+                                            <div class="progress-marker d2"></div>
+                                            <div class="progress-marker d3"></div>
+                                            <div class="progress-marker d4"></div>
+                                            <div class="progress-marker d5"></div>
+                                            <div class="progress-marker d6"></div>
+                                        </div>
+                                    </div>
+                                    <div class="day-indicators" style="display: none;">
+                                        <div class="day-indicator" id="day-1"><i class="fas fa-circle"></i></div>
+                                        <div class="day-indicator" id="day-2"><i class="fas fa-circle"></i></div>
+                                        <div class="day-indicator" id="day-3"><i class="fas fa-circle"></i></div>
+                                        <div class="day-indicator" id="day-4"><i class="fas fa-circle"></i></div>
+                                        <div class="day-indicator" id="day-5"><i class="fas fa-circle"></i></div>
+                                        <div class="day-indicator" id="day-6"><i class="fas fa-circle"></i></div>
+                                        <div class="day-indicator" id="day-7"><i class="fas fa-circle"></i></div>
+                                    </div>
+                                </div>
+
+                                <div class="quarter-progress">
+                                    <div class="progress-info">
+                                        <div class="progress-values">
+                                            <span class="progress-value" id="countdown-month">--%</span>
+                                            <span class="progress-detail" id="month-detail"></span>
+                                        </div>
+                                    </div>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar" id="quarter-progress"></div>
+                                        <div class="progress-marker m1"></div>
+                                        <div class="progress-marker m2"></div>
+                                        <div class="progress-marker m3"></div>
+                                        <div class="progress-marker m4"></div>
+                                    </div>
+                                </div>
+                                <div class="progress-overview">
+                                    <div class="progress-info main-progress">
+                                        <span class="progress-label">年度进度</span>
+                                        <div class="progress-values">
+                                            <span class="progress-value" id="countdown-year">--%</span>
+                                            <span class="progress-detail" id="year-detail">剩余 -- 天</span>
+                                        </div>
+                                    </div>
+                                    <div class="progress-bar-container main-bar">
+                                        <div class="progress-bar" id="year-progress">
+                                            <div class="progress-marker q1"></div>
+                                            <div class="progress-marker q2"></div>
+                                            <div class="progress-marker q3"></div>
+                                        </div>
+                                        <div class="quarter-indicator" id="current-quarter"></div>
+                                    </div>
+                                    <div class="progress-scale year-scale">
+                                        <span>Q1</span>
+                                        <span>Q2</span>
+                                        <span>Q3</span>
+                                        <span>Q4</span>
+                                    </div>
+                                </div>
+                           
+
+                           
+                      
+                
+                </div>
+            </section>
+            
+            <!-- 活动追踪卡片 -->
+            <section class="card-base activity-tracking-card">
+                <div class="activity-container">
+                    <!-- 运动目标 -->
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-running"></i>
+                        </div>
+                        <div class="activity-info">
+                            <span class="activity-title">运动目标</span>
+                            <div class="goal-info">
+                                <div class="goal-progress">
+                                    <span class="goal-number">40</span>
+                                    <span class="goal-unit">分钟</span>
+                                </div>
+                                <span class="goal-desc">2天内完成</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 学习目标 -->
+                    <div class="activity-item">
+                        <div class="activity-icon study-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div class="activity-info">
+                            <span class="activity-title">学习目标</span>
+                            <div class="goal-info">
+                                <div class="goal-progress">
+                                    <span class="goal-number">60</span>
+                                    <span class="goal-unit">分钟</span>
+                                </div>
+                                <span class="goal-desc">2天内完成</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- iframe 口号卡片 -->
+            <section class="card-base slogan-card">
+                <iframe src="slogan.html" frameborder="0" scrolling="no"></iframe>
+            </section>
+
+            <!-- 博客展示卡片 -->
+            <section class="card-base blog-card">
+                <div class="blog-header">
+                    <h3><i class="fas fa-pen-fancy"></i> 最新博客</h3>
+                    <a href="/blog/index.html" class="view-all">更多文章 <i class="fas fa-chevron-right"></i></a>
+                </div>
+                <div class="blog-list" id="blogList">
+                    <!-- 博客文章将通过JavaScript动态加载 -->
+                </div>
+            </section>
+
+            <!-- 项目卡片 -->
+            <section class="card-base content-card project-updates-card">
+                <h2><a href="projects/index.html" class="section-link">在线页面</a></h2>
+                <div class="project-updates-list">
+                    <div class="project-item">
+                        <div class="project-info">
+                            <div class="project-name-wrapper">
+                                <a href="projects/foods/index.html" class="project-name">Foods</a>
+                                <span class="project-type static">
+                                    <i class="fas fa-globe"></i>
+                                    Static
+                                </span>
+                            </div>
+                            <span class="update-time">2小时前更新</span>
+                        </div>
+                        <div class="project-status">
+                            <span class="status-dot updated"></span>
+                        </div>
+                    </div>
+                    <div class="project-item">
+                        <div class="project-info">
+                            <div class="project-name-wrapper">
+                                <a href="projects/glosaConfig/glosa服务参数.html" class="project-name">Glosa配置</a>
+                                <span class="project-type static">
+                                    <i class="fas fa-globe"></i>
+                                    Static
+                                </span>
+                            </div>
+                            <span class="update-time">新增</span>
+                        </div>
+                        <div class="project-status">
+                            <span class="status-dot updated"></span>
+                        </div>
+                    </div>
+                    <div class="project-item">
+                        <div class="project-info">
+                            <div class="project-name-wrapper">
+                                <a href="projects/tools/index.html" class="project-name">Tools</a>
+                                <span class="project-type static">
+                                    <i class="fas fa-globe"></i>
+                                    Static
+                                </span>
+                            </div>
+                            <span class="update-time">3天前更新</span>
+                        </div>
+                        <div class="project-status">
+                            <span class="status-dot"></span>
+                        </div>
+                    </div>
+                    <div class="project-item">
+                        <div class="project-info">
+                            <div class="project-name-wrapper">
+                                <a href="projects/点积/index.html" class="project-name">点积计算器</a>
+                                <span class="project-type static">
+                                    <i class="fas fa-globe"></i>
+                                    Static
+                                </span>
+                            </div>
+                            <span class="update-time">数学工具</span>
+                        </div>
+                        <div class="project-status">
+                            <span class="status-dot"></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script type="module">
+        import { projectsData } from './projects/data.js';
+        import { blogData } from './blog/data.js';
+        window.siteData = { ...projectsData, ...blogData };
+
+        // 渲染博客文章列表
+        function renderBlogList() {
+            const blogList = document.getElementById('blogList');
+            if (!blogList) return;
+            
+            // 清空现有内容
+            blogList.innerHTML = '';
+       
+            blogData.posts.slice(0, 3).forEach(post => {
+                const article = document.createElement('article');
+                article.className = 'blog-item';
+                
+                // 限制摘要长度为60字符
+                const excerpt = post.content.length > 60 
+                    ? post.content.substring(0, 60) + '...'
+                    : post.content;
+                
+                // 格式化日期
+                const postDate = new Date(post.date);
+                const formattedDate = `${postDate.getFullYear()}-${String(postDate.getMonth() + 1).padStart(2, '0')}-${String(postDate.getDate()).padStart(2, '0')}`;
+                
+                article.innerHTML = `
+                    <div class="blog-item-content">
+                        <h4 class="blog-title">
+                            <a href="${post.url}" title="${post.title}">${post.title}</a>
+                        </h4>
+                        <p class="post-excerpt" title="${post.content}">${excerpt}</p>
+                        <div class="post-meta">
+                            <span class="post-date"><i class="far fa-calendar-alt"></i> ${formattedDate}</span>
+                            <span class="post-read-time"><i class="far fa-clock"></i> ${post.readTime || '5分钟'}</span>
+                        </div>
+                    </div>
+                `;
+                
+                blogList.appendChild(article);
+            });
+        }
+
+        // 页面加载完成后渲染博客列表
+        document.addEventListener('DOMContentLoaded', renderBlogList);
+    </script>
+    <script>
+        // 全局错误处理
+        window.addEventListener('error', function(e) {
+            // 忽略资源加载错误
+            if (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK') {
+                e.preventDefault();
+                console.warn('资源加载失败:', e.target.src || e.target.href);
+                return;
+            }
+        });
+
+        // 确保 todoData 已经初始化
+        if (typeof todoData !== 'undefined') {
+            todoData.init();
+        }
+    </script>
+  
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/status-card.js"></script>
+</body>
+</html>
+

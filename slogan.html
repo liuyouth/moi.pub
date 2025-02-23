@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slogan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: transparent;
+            overflow: hidden;
+        }
+
+        .slogan-container {
+            position: relative;
+            width: 100%;
+            height: 60px; /* 固定高度 */
+            text-align: center;
+        }
+
+        .slogan {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) translateY(30px);
+            width: 100%;
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, var(--primary-color, #ff3366), var(--secondary-color, #00ccff));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.5s ease;
+        }
+
+        .slogan.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) translateY(0);
+        }
+
+        .slogan.fade-out {
+            opacity: 0;
+            visibility: hidden;
+            transform: translate(-50%, -50%) translateY(-30px);
+        }
+    </style>
+</head>
+<body>
+    <div class="slogan-container">
+        <div class="slogan">DONE FIRST, PERFECT LATER.</div>
+        <div class="slogan">持续学习，保持热情</div>
+        <div class="slogan">用代码改变世界</div>
+    </div>
+
+    <script>
+        const slogans = document.querySelectorAll('.slogan');
+        let currentIndex = 0;
+        let prevIndex = slogans.length - 1;
+
+        function showNextSlogan() {
+            // 移除之前的 slogan 的所有类
+            slogans[prevIndex].classList.remove('active', 'fade-out');
+            
+            // 添加当前 slogan 的活动类
+            slogans[currentIndex].classList.add('active');
+            
+            // 更新索引
+            prevIndex = currentIndex;
+            currentIndex = (currentIndex + 1) % slogans.length;
+            
+            // 为即将消失的 slogan 添加淡出效果
+            setTimeout(() => {
+                slogans[prevIndex].classList.add('fade-out');
+            }, 3000); // 在切换前 1 秒开始淡出
+        }
+
+        // 显示第一条口号
+        slogans[currentIndex].classList.add('active');
+        
+        // 每 4 秒切换一次
+        setInterval(showNextSlogan, 4000);
+    </script>
+</body>
+</html> 

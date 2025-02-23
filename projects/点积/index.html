@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>点积与向量方向演示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px 40px;
+            background-color: #f5f5f5;
+            scroll-behavior: smooth;
+            min-height: 100vh;
+        }
+        .main-container {
+            width: 100%;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-top: 10px;
+        }
+        .canvas-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .canvas-container {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .explanation {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            height: fit-content;
+            font-size: 1.2em;
+            line-height: 1.8;
+        }
+        .result-controls {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .result {
+            font-size: 1.2em;
+            font-weight: bold;
+            white-space: nowrap;
+            min-width: 200px;
+        }
+        .dot-product-value {
+            display: inline-block;
+            min-width: 80px;
+            text-align: right;
+            font-family: monospace;
+            font-size: 1.2em;
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+            white-space: nowrap;
+        }
+        .controls input[type="range"] {
+            width: 300px;
+            height: 6px;
+            -webkit-appearance: none;
+            background: #ddd;
+            border-radius: 3px;
+            outline: none;
+        }
+        .controls input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #2ecc71;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .controls input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+        .angle-value {
+            min-width: 60px;
+            display: inline-block;
+            font-family: monospace;
+            font-size: 1.2em;
+            text-align: center;
+            padding: 5px 10px;
+            background: #f1f3f5;
+            border-radius: 5px;
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            max-height: 280px;
+            object-fit: contain;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+        .positive { color: #2ecc71; }
+        .negative { color: #e74c3c; }
+        .zero { color: #3498db; }
+        .canvas-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f1f3f5;
+        }
+        .stage {
+            display: none;
+        }
+        .stage.active {
+            display: block;
+        }
+        .stage-nav {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .stage-btn {
+            padding: 10px 20px;
+            border: none;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+        .stage-btn.active {
+            background: #2ecc71;
+            color: white;
+        }
+        .stage-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .canvas-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+        h1 {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        h2 {
+            color: #444;
+            border-bottom: 2px solid #f1f3f5;
+            padding-bottom: 6px;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        p, li {
+            line-height: 1.6;
+            color: #666;
+        }
+        .forward-result {
+            text-align: center;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        .direction-result {
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        .direction-result.positive {
+            background: #d4edda;
+        }
+        .direction-result.negative {
+            background: #f8d7da;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="content">
+            <h1>点积与向量方向的可视化演示</h1>
+            
+            <div class="stage-nav">
+                <button class="stage-btn active" onclick="switchStage(1)">第一阶段：认识向量</button>
+                <button class="stage-btn" onclick="switchStage(2)">第二阶段：点积与方向</button>
+            </div>
+
+            <div class="container">
+                <div class="canvas-section">
+                    <div class="stage active" id="stage1">
+                        <div class="canvas-container">
+                            <div class="canvas-title">从点到向量的转换</div>
+                            <canvas id="pointToVectorCanvas" width="600" height="200"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="stage" id="stage2">
+                        <div class="canvas-grid">
+                            <div class="canvas-container">
+                                <div class="canvas-title">点积演示</div>
+                                <canvas id="vectorCanvas" width="500" height="280"></canvas>
+                                <div class="result-controls">
+                                    <div class="result">
+                                        点积结果：<span id="dotProduct" class="dot-product-value">计算中...</span>
+                                    </div>
+                                    <div class="controls">
+                                        <label for="angleSlider">调整夹角：</label>
+                                        <input type="range" id="angleSlider" min="0" max="360" value="45">
+                                        <span id="angleValue" class="angle-value">45°</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="canvas-container">
+                                <div class="canvas-title">判断向量是否在前方</div>
+                                <canvas id="forwardCanvas" width="500" height="280"></canvas>
+                                <div class="forward-result">
+                                    <span id="forwardResult" style="font-size: 1.2em; font-weight: bold;">
+                                        向量B <span class="direction-result">在</span> 向量A的前方
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="explanation">
+                    <div class="stage active" id="stage1-exp">
+                        <section id="vector-basics">
+                            <h2>从点到向量</h2>
+                            <p>向量可以通过两点来定义：</p>
+                            <ul>
+                                <li>起点：向量的开始位置（例如：经度0°，纬度0°）</li>
+                                <li>终点：向量的结束位置（例如：经度30°，纬度45°）</li>
+                                <li>方向：从起点指向终点的方向</li>
+                                <li>大小：两点之间的距离</li>
+                            </ul>
+
+                            <h2>经纬度转向量的过程</h2>
+                            <p>将经纬度点转换为三维向量的步骤：</p>
+                            <ul>
+                                <li>经度(λ)：地球表面上的东西方向角度（-180° 到 +180°）</li>
+                                <li>纬度(φ)：地球表面上的南北方向角度（-90° 到 +90°）</li>
+                                <li>转换公式：</li>
+                                <ul>
+                                    <li>x = cos(φ) * cos(λ)</li>
+                                    <li>y = cos(φ) * sin(λ)</li>
+                                    <li>z = sin(φ)</li>
+                                </ul>
+                            </ul>
+
+                            <p>在平面（2D）中的简化：</p>
+                            <ul>
+                                <li>角度θ：与正方向的夹角（0° 到 360°）</li>
+                                <li>x = r * cos(θ)</li>
+                                <li>y = r * sin(θ)</li>
+                                <li>其中r是向量的长度</li>
+                            </ul>
+
+                            <h2>什么是向量？</h2>
+                            <p>向量是同时具有大小和方向的量。在平面中，向量可以用：</p>
+                            <ul>
+                                <li>长度（大小）：表示向量的大小</li>
+                                <li>角度（方向）：表示向量相对于正方向的倾角</li>
+                                <li>箭头：箭头的长度表示大小，箭头方向表示方向</li>
+                            </ul>
+                            <p>在本演示中：</p>
+                            <ul>
+                                <li><span style="color: #2ecc71">向量A</span>：固定在水平方向（0°）</li>
+                                <li><span style="color: #e74c3c">向量B</span>：可以360°旋转</li>
+                            </ul>
+                        </section>
+                    </div>
+
+                    <div class="stage" id="stage2-exp">
+                        <section id="dot-product-definition">
+                            <h2>什么是点积？</h2>
+                            <p>点积（数量积）是向量运算的一种，它将两个向量运算得到一个标量。</p>
+                            <p>数学表达式：\[\vec{A} \cdot \vec{B} = |A||B|\cos \theta\]</p>
+                            <p>其中：</p>
+                            <ul>
+                                <li>|A|, |B| 分别是两个向量的长度</li>
+                                <li>θ 是两个向量之间的夹角</li>
+                                <li>结果是一个标量（普通数字）</li>
+                            </ul>
+                        </section>
+                        
+                        <section id="dot-product-direction">
+                            <h2>点积与方向关系</h2>
+                            <ul>
+                                <li><span class="positive">点积 > 0</span>：两向量夹角在0°~90°或270°~360°之间，方向基本一致</li>
+                                <li><span class="zero">点积 = 0</span>：两向量互相垂直，夹角为90°或270°</li>
+                                <li><span class="negative">点积 < 0</span>：两向量夹角在90°~270°之间，方向基本相反</li>
+                            </ul>
+                        </section>
+
+                        <section id="applications">
+                            <h2>实际应用</h2>
+                            <p>点积在游戏开发、计算机图形学中经常用于：</p>
+                            <ul>
+                                <li>判断物体的朝向</li>
+                                <li>计算光照强度</li>
+                                <li>检测碰撞</li>
+                            </ul>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 获取Canvas上下文
+        const canvas = document.getElementById('vectorCanvas');
+        const ctx = canvas.getContext('2d');
+        const pointToVectorCanvas = document.getElementById('pointToVectorCanvas');
+        const ptCtx = pointToVectorCanvas.getContext('2d');
+        const slider = document.getElementById('angleSlider');
+        const angleValue = document.getElementById('angleValue');
+        const dotProductSpan = document.getElementById('dotProduct');
+
+        // 向量A的属性（固定）
+        const vectorA = {
+            length: 100,
+            angle: 0 // 水平向右
+        };
+
+        // 向量B的属性（可变）
+        const vectorB = {
+            length: 100,
+            angle: Math.PI / 4 // 初始45度
+        };
+
+        // 绘制从点到向量的演示
+        function drawPointToVector() {
+            const startX = 50;
+            const startY = pointToVectorCanvas.height / 2;
+            const endX = startX + 100;
+            const endY = startY - 50;
+            
+            ptCtx.clearRect(0, 0, pointToVectorCanvas.width, pointToVectorCanvas.height);
+            
+            // 绘制网格
+            ptCtx.strokeStyle = '#eee';
+            ptCtx.beginPath();
+            for(let x = 0; x < pointToVectorCanvas.width; x += 20) {
+                ptCtx.moveTo(x, 0);
+                ptCtx.lineTo(x, pointToVectorCanvas.height);
+            }
+            for(let y = 0; y < pointToVectorCanvas.height; y += 20) {
+                ptCtx.moveTo(0, y);
+                ptCtx.lineTo(pointToVectorCanvas.width, y);
+            }
+            ptCtx.stroke();
+
+            // 绘制坐标轴
+            ptCtx.strokeStyle = '#ccc';
+            ptCtx.beginPath();
+            ptCtx.moveTo(0, pointToVectorCanvas.height/2);
+            ptCtx.lineTo(pointToVectorCanvas.width, pointToVectorCanvas.height/2);
+            ptCtx.moveTo(20, 0);
+            ptCtx.lineTo(20, pointToVectorCanvas.height);
+            ptCtx.stroke();
+
+            // 绘制起点
+            ptCtx.fillStyle = '#3498db';
+            ptCtx.beginPath();
+            ptCtx.arc(startX, startY, 4, 0, Math.PI * 2);
+            ptCtx.fill();
+            ptCtx.fillText('起点', startX - 20, startY + 20);
+
+            // 绘制终点
+            ptCtx.fillStyle = '#e74c3c';
+            ptCtx.beginPath();
+            ptCtx.arc(endX, endY, 4, 0, Math.PI * 2);
+            ptCtx.fill();
+            ptCtx.fillText('终点', endX + 10, endY - 10);
+
+            // 绘制向量
+            ptCtx.strokeStyle = '#2ecc71';
+            ptCtx.beginPath();
+            ptCtx.moveTo(startX, startY);
+            ptCtx.lineTo(endX, endY);
+            ptCtx.stroke();
+
+            // 绘制箭头
+            const angle = Math.atan2(endY - startY, endX - startX);
+            const arrowSize = 10;
+            const arrowAngle = Math.PI / 6;
+            
+            ptCtx.beginPath();
+            ptCtx.moveTo(endX, endY);
+            ptCtx.lineTo(
+                endX - arrowSize * Math.cos(angle - arrowAngle),
+                endY - arrowSize * Math.sin(angle - arrowAngle)
+            );
+            ptCtx.moveTo(endX, endY);
+            ptCtx.lineTo(
+                endX - arrowSize * Math.cos(angle + arrowAngle),
+                endY - arrowSize * Math.sin(angle + arrowAngle)
+            );
+            ptCtx.stroke();
+
+            // 标注向量属性
+            ptCtx.fillStyle = '#2ecc71';
+            ptCtx.fillText('向量 = 终点 - 起点', endX - 80, endY - 30);
+            
+            // 动画循环
+            requestAnimationFrame(drawPointToVector);
+        }
+
+        // 绘制坐标系
+        function drawCoordinateSystem() {
+            ctx.strokeStyle = '#ccc';
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height/2);
+            ctx.lineTo(canvas.width, canvas.height/2);
+            ctx.moveTo(canvas.width/2, 0);
+            ctx.lineTo(canvas.width/2, canvas.height);
+            ctx.stroke();
+        }
+
+        // 绘制向量
+        function drawVector(startX, startY, angle, length, color, label) {
+            const endX = startX + length * Math.cos(angle);
+            const endY = startY + length * Math.sin(angle);
+            
+            // 绘制向量主体
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+
+            // 绘制箭头
+            const arrowSize = 10;
+            const arrowAngle = Math.PI / 6;
+            
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(
+                endX - arrowSize * Math.cos(angle - arrowAngle),
+                endY - arrowSize * Math.sin(angle - arrowAngle)
+            );
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(
+                endX - arrowSize * Math.cos(angle + arrowAngle),
+                endY - arrowSize * Math.sin(angle + arrowAngle)
+            );
+            ctx.stroke();
+
+            // 绘制标签
+            ctx.fillStyle = color;
+            ctx.font = '16px Arial';
+            ctx.fillText(label, 
+                endX + 10 * Math.cos(angle), 
+                endY + 10 * Math.sin(angle));
+        }
+
+        // 计算点积
+        function calculateDotProduct(angle) {
+            // |A||B|cosθ
+            return vectorA.length * vectorB.length * Math.cos(angle * Math.PI / 180);
+        }
+
+        // 更新显示
+        function updateDisplay() {
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制坐标系
+            drawCoordinateSystem();
+
+            // 设置向量起点（画布中心）
+            const centerX = canvas.width/2;
+            const centerY = canvas.height/2;
+
+            // 绘制两个向量
+            drawVector(centerX, centerY, vectorA.angle, vectorA.length, '#2ecc71', 'A');
+            drawVector(centerX, centerY, vectorB.angle, vectorB.length, '#e74c3c', 'B');
+
+            // 计算并显示点积
+            const angle = parseFloat(slider.value);
+            const dotProduct = calculateDotProduct(angle);
+            
+            // 更新点积显示
+            dotProductSpan.textContent = dotProduct.toFixed(2);
+            if (dotProduct > 0) {
+                dotProductSpan.className = 'positive';
+            } else if (dotProduct < 0) {
+                dotProductSpan.className = 'negative';
+            } else {
+                dotProductSpan.className = 'zero';
+            }
+        }
+
+        // 绘制判断前方的演示
+        function drawForwardDemo() {
+            const canvas = document.getElementById('forwardCanvas');
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制参考线
+            ctx.strokeStyle = '#eee';
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(centerX - 150, centerY);
+            ctx.lineTo(centerX + 150, centerY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // 绘制向量A（固定向右）
+            const vectorLength = 80;
+            ctx.strokeStyle = '#2ecc71';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(centerX + vectorLength, centerY);
+            ctx.stroke();
+            
+            // 绘制A的箭头
+            const arrowSize = 10;
+            const arrowAngle = Math.PI / 6;
+            ctx.beginPath();
+            ctx.moveTo(centerX + vectorLength, centerY);
+            ctx.lineTo(centerX + vectorLength - arrowSize * Math.cos(-arrowAngle), centerY - arrowSize * Math.sin(-arrowAngle));
+            ctx.moveTo(centerX + vectorLength, centerY);
+            ctx.lineTo(centerX + vectorLength - arrowSize * Math.cos(arrowAngle), centerY - arrowSize * Math.sin(arrowAngle));
+            ctx.stroke();
+            
+            // 获取当前角度
+            const angle = parseFloat(slider.value) * Math.PI / 180;
+            
+            // 绘制向量B（根据滑块角度）
+            ctx.strokeStyle = '#e74c3c';
+            const endX = centerX + vectorLength * Math.cos(angle);
+            const endY = centerY + vectorLength * Math.sin(angle);
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+            
+            // 绘制B的箭头
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(
+                endX - arrowSize * Math.cos(angle - arrowAngle),
+                endY - arrowSize * Math.sin(angle - arrowAngle)
+            );
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(
+                endX - arrowSize * Math.cos(angle + arrowAngle),
+                endY - arrowSize * Math.sin(angle + arrowAngle)
+            );
+            ctx.stroke();
+            
+            // 添加标签
+            ctx.fillStyle = '#2ecc71';
+            ctx.font = '16px Arial';
+            ctx.fillText('A', centerX + vectorLength + 15, centerY);
+            
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillText('B', endX + 15, endY);
+            
+            // 更新前方判断结果
+            const dotProduct = Math.cos(angle);
+            const resultSpan = document.querySelector('.direction-result');
+            const angleInDegrees = angle * 180 / Math.PI;
+            if ((angleInDegrees >= 0 && angleInDegrees <= 90) || (angleInDegrees >= 270 && angleInDegrees <= 360)) {
+                resultSpan.textContent = '在';
+                resultSpan.className = 'direction-result positive';
+            } else {
+                resultSpan.textContent = '不在';
+                resultSpan.className = 'direction-result negative';
+            }
+        }
+
+        // 修改滑块监听器
+        slider.addEventListener('input', function() {
+            const angle = this.value;
+            angleValue.textContent = angle + '°';
+            vectorB.angle = angle * Math.PI / 180;
+            updateDisplay();
+            drawForwardDemo();
+        });
+
+        // 初始显示
+        updateDisplay();
+        drawPointToVector();
+        drawForwardDemo();
+
+        // 添加阶段切换功能
+        function switchStage(stageNum) {
+            // 更新按钮状态
+            document.querySelectorAll('.stage-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.stage-btn')[stageNum-1].classList.add('active');
+
+            // 更新内容显示
+            document.querySelectorAll('.stage').forEach(stage => stage.classList.remove('active'));
+            document.getElementById('stage' + stageNum).classList.add('active');
+            document.getElementById('stage' + stageNum + '-exp').classList.add('active');
+        }
+    </script>
+</body>
+</html>

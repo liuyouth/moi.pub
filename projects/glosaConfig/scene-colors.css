@@ -1,0 +1,206 @@
+:root {
+    /* 暗色模式基础色彩 */
+    --bg-light: #1a1a1a;
+    --bg-lighter: #242424;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --border-light: #333;
+    --primary-light: #4a9eff;
+    --primary-color: #007bff;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+
+    /* 场景特定颜色 - 优化后的配色方案 */
+    --scene-lamp-bg: #2d3748;
+    --scene-lamp-border: #4a5568;
+    --scene-lamp-hover: #2c5282;
+
+    --scene-speed-bg: #2d3d4d;
+    --scene-speed-border: #4a6d82;
+    --scene-speed-hover: #2c6282;
+
+    --scene-green-bg: #2d4d3d;
+    --scene-green-border: #4a826d;
+    --scene-green-hover: #2c8262;
+
+    --scene-switch-bg: #3d2d4d;
+    --scene-switch-border: #6d4a82;
+    --scene-switch-hover: #622c82;
+
+    --scene-other-bg: #4d3d2d;
+    --scene-other-border: #826d4a;
+    --scene-other-hover: #826d2c;
+}
+
+/* 场景卡片样式 */
+.param-card.lampCountdownScene,
+.param-card.suggestSpeedScene,
+.param-card.greenStartRemindScene,
+.param-card.lampColorSwitchRemindScene,
+.param-card.otherScene {
+    border-width: 1px;
+    border-style: solid;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(8px);
+    padding: 1.5rem;
+    
+}
+
+.param-card.lampCountdownScene {
+    background: var(--scene-lamp-bg);
+    border-color: var(--scene-lamp-border);
+}
+
+.param-card.suggestSpeedScene {
+    background: var(--scene-speed-bg);
+    border-color: var(--scene-speed-border);
+}
+
+.param-card.greenStartRemindScene {
+    background: var(--scene-green-bg);
+    border-color: var(--scene-green-border);
+}
+
+.param-card.lampColorSwitchRemindScene {
+    background: var(--scene-switch-bg);
+    border-color: var(--scene-switch-border);
+}
+
+.param-card.otherScene {
+    background: var(--scene-other-bg);
+    border-color: var(--scene-other-border);
+}
+
+.param-card.lampCountdownScene:hover {
+    background: rgba(45, 55, 72, 0.25);
+    border-color: var(--scene-lamp-hover);
+    box-shadow: 0 4px 12px rgba(45, 55, 72, 0.2);
+}
+
+.param-card.suggestSpeedScene:hover {
+    background: rgba(45, 61, 77, 0.25);
+    border-color: var(--scene-speed-hover);
+    box-shadow: 0 4px 12px rgba(45, 61, 77, 0.2);
+}
+
+.param-card.greenStartRemindScene:hover {
+    background: rgba(45, 77, 61, 0.25);
+    border-color: var(--scene-green-hover);
+    box-shadow: 0 4px 12px rgba(45, 77, 61, 0.2);
+}
+
+.param-card.lampColorSwitchRemindScene:hover {
+    background: rgba(61, 45, 77, 0.25);
+    border-color: var(--scene-switch-hover);
+    box-shadow: 0 4px 12px rgba(61, 45, 77, 0.2);
+}
+
+.param-card.otherScene:hover {
+    background: rgba(77, 61, 45, 0.25);
+    border-color: var(--scene-other-hover);
+    box-shadow: 0 4px 12px rgba(77, 61, 45, 0.2);
+}
+
+/* 增强卡片悬停效果 */
+.param-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+/* 场景标题样式优化 */
+.scene-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding: 20px;
+    position: relative;
+    color: var(--text-primary);
+}
+
+ 
+.scene-title.lampCountdownScene {
+    color: var(--scene-lamp-border);
+    
+}
+
+.scene-title.suggestSpeedScene {
+    color: var(--scene-speed-border);
+}
+
+.scene-title.greenStartRemindScene {
+    color: var(--scene-green-border);
+}
+
+.scene-title.lampColorSwitchRemindScene {
+    color: var(--scene-switch-border);
+}
+
+.scene-title.otherScene {
+    color: var(--scene-other-border);
+}
+
+/* 优化参数描述显示效果 */
+.param-desc {
+    color: var(--text-primary);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 3px solid;
+    transition: all 0.3s ease;
+}
+
+.param-desc:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(2px);
+}
+
+/* 为不同场景的param-desc设置对应的边框颜色 */
+.lampCountdownScene .param-desc {
+    border-left-color: var(--scene-lamp-border);
+    background: rgba(74, 85, 104, 0.1);
+}
+
+.suggestSpeedScene .param-desc {
+    border-left-color: var(--scene-speed-border);
+    background: rgba(74, 109, 130, 0.1);
+}
+
+.greenStartRemindScene .param-desc {
+    border-left-color: var(--scene-green-border);
+    background: rgba(74, 130, 109, 0.1);
+}
+
+.lampColorSwitchRemindScene .param-desc {
+    border-left-color: var(--scene-switch-border);
+    background: rgba(109, 74, 130, 0.1);
+}
+
+.otherScene .param-desc {
+    border-left-color: var(--scene-other-border);
+    background: rgba(130, 109, 74, 0.1);
+}
+
+/* 悬停效果 */
+.lampCountdownScene .param-desc:hover {
+    background: rgba(74, 85, 104, 0.15);
+}
+
+.suggestSpeedScene .param-desc:hover {
+    background: rgba(74, 109, 130, 0.15);
+}
+
+.greenStartRemindScene .param-desc:hover {
+    background: rgba(74, 130, 109, 0.15);
+}
+
+.lampColorSwitchRemindScene .param-desc:hover {
+    background: rgba(109, 74, 130, 0.15);
+}
+
+.otherScene .param-desc:hover {
+    background: rgba(130, 109, 74, 0.15);
+}

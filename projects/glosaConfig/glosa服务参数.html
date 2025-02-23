@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Glosa服务参数配置</title>
+    <link rel="stylesheet" href="/assets/css/common.css">
+    <link rel="stylesheet" href="scene-colors.css">
+    <style>
+        :root {
+            --bg-light: #1a1a1a;
+            --bg-lighter: #2a2a2a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --border-light: #404040;
+            --primary-light: #4a90e2;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.2);
+            --shadow-md: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .container {
+            margin: 0 auto;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+        
+        .top-nav {
+            position: sticky;
+            top: 0;
+            background: var(--bg-lighter);
+            height: 68px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-shadow: var(--shadow-sm);
+            z-index: 100;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .top-nav h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+        }
+        
+        .version-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-lighter);
+            padding: 10px;
+            border: 1px solid var(--border-light);
+        }
+        
+        .version-selector select {
+            padding: 6px 12px;
+            border: 1px solid var(--border-light);
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            background: var(--bg-lighter);
+            cursor: pointer;
+        }
+        
+        .version-selector select:hover {
+            border-color: var(--primary-light);
+            background: var(--bg-lighter);
+        }
+        
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            padding: 20px;
+            width: 100%;
+            box-sizing: border-box;
+            background: var(--bg-light);
+        }
+        
+        .param-card {
+            background: var(--bg-lighter);
+            padding: 16px;
+            width: 100%;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .param-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary-light);
+        }
+        
+        .param-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        
+        .param-desc {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+        
+        .version-values {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+        
+        .version-value {
+            background: var(--bg-light);
+            padding: 12px;
+            text-align: left;
+            font-size: 1rem;
+            border: 1px solid var(--border-light);
+            transition: all 0.2s ease;
+        }
+        
+      
+        
+        .version-value .version-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        
+        .version-value .value {
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        
+        .version-value .value:lang(en) {
+            font-size: 0.9rem;
+        }
+        
+        .version-value .value:not(:lang(en)):not(:lang(zh)) {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .scene-title {
+            font-size: 1.4rem;
+            color: var(--text-primary);
+            
+            border-bottom: 2px solid var(--border-light);
+            background: transparent;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-nav">
+            <h1>Glosa服务参数配置</h1>
+            <div class="version-selector">
+                <label for="version">选择版本：</label>
+                <select id="version" onchange="showVersion(this.value)">
+                    <option value="all">所有版本</option>
+                    <option value="0">版本 0</option>
+                    <option value="1">版本 1</option>
+                    <option value="2">版本 2</option>
+                    <option value="3">版本 3</option>
+                    <option value="4">版本 4</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="content" class="params-grid"></div>
+    </div>
+
+    <script>
+        const paramDescriptions = {
+            "lampCountdownScene": "红绿灯倒计时场景配置",
+            "filterTypes_lamp": "过滤类型列表（红绿灯场景）",
+            "fuzzyMatchMaxDistance": "模糊匹配最大距离（米）",
+            "maxTrustTime": "最大信任时间（毫秒）",
+            "requestRate": "请求频率",
+            "checkDiffCountdownLimit": "倒计时差值检查限制",
+            "countdownDiffLimit": "倒计时差值限制",
+            
+            
+            
+            "suggestSpeedScene": "建议速度场景配置",
+            "sceneEndDistance": "场景结束距离（米）",
+            "calculateCongesionIndex": "是否计算拥堵指数",
+            "calculateAverageSpeed": "是否计算平均速度",
+            "roadClearIndex": "道路通畅指数",
+            "minCongestionSpeed": "最小拥堵速度（公里/小时）",
+            "defaultMaxSpeed": "默认最大速度（公里/小时）",
+            "defaultMinSpeed": "默认最小速度（公里/小时）",
+            "defaultRemainSafePassTime": "默认剩余安全通过时间（秒）",
+            "maxSafeSpeedRate": "最大安全速度比率",
+            "glosaSingleSpeedLimit": "单个速度限制（公里/小时）",
+            "glosaSpeedLimit": "速度限制（公里/小时）",
+            
+            "greenStartRemindScene": "绿灯启动提醒场景配置",
+            "maxSpeed": "最大速度（公里/小时）",
+            "maxRemindDistance": "最大提醒距离（米）",
+            "maxRemindRedLampCountdown": "红灯倒计时最大提醒时间（秒）",
+            
+            "lampColorSwitchRemindScene": "信号灯切换提醒场景配置",
+            "brakeDeceleration": "刹车减速度（米/秒²）",
+            "greenCountdown": "绿灯倒计时（秒）",
+            "minStopTime": "最小停车时间（秒）",
+            "minStopDistance": "最小停车距离（米）",
+            "rlrDistanceLimit": "闯红灯距离限制（米）",
+            "minSpeedLimit": "最小速度限制（公里/小时）",
+            
+            "otherScene": "其他场景配置",
+            "filterTypes_other": "过滤类型列表（其他场景）",
+            "crossOutBearingLimit": "出口方向角度限制（度）",
+            "removeLinkPointProtectDistance": "移除连接点保护距离（米）",
+            "naviPointToTurnPointDistance": "导航点到转向点距离（米）",
+            "maxCheckPointCount": "最大检查点数量",
+            "routeWithCarBindDistanceLimit": "车辆绑定路径距离限制（米）",
+            "routeWithCarBindBearingLimit": "车辆绑定路径方向角度限制（度）",
+            "routeWithLampBindDistanceLimit": "信号灯绑定路径距离限制（米）",
+            "routeWithLampBindBearingLimit": "信号灯绑定路径方向角度限制（度）",
+            "endPointToLampDistanceLimit": "终点到信号灯距离限制（米）",
+            "naviPointCreateDistanceLimit": "导航点创建距离限制（米）",
+            "maxLampCenterPointToTurnPointDistance": "信号灯中心点到转向点最大距离（米）",
+            "routeLampCenterPointToBdLampDistance": "路径信号灯中心点到实际信号灯距离（米）",
+            "tryCheckRouteLampCenterPointCount": "尝试检查路径信号灯中心点数量",
+            "maxTurnPointCacheSize": "最大转向点缓存大小",
+            "maxLampCenterPointGenerateLimit": "最大信号灯中心点生成限制",
+            "useNavigationSpeedLimit": "是否使用导航速度限制",
+            "checkTokenExpireFrequency": "令牌过期检查频率（毫秒）",
+            "crossOutUseOriginalLocation": "出口是否使用原始位置",
+            "filterLampRepeatDistance": "过滤重复信号灯距离（米）",
+            "searchMatchedLampCenterPointPointCount": "搜索匹配信号灯中心点数量",
+            "nearbyTurnPointNaviPointCount": "附近转向点导航点数量",
+            "nearNaviPointsForStaticLampCount": "静态信号灯附近导航点数量",
+            "requestStaticLampDataMaxPointCount": "请求静态信号灯数据最大点数",
+            "enableCrossOutDistanceProtectSpeedLimit": "启用出口距离保护速度限制（公里/小时）",
+            "requestStaticLampRemoveHeadPointCount": "请求静态信号灯移除头部点数量",
+            "checkRepeatLampNearPointCount": "检查重复信号灯附近点数量",
+            "nonDirectionShow": "无方向显示模式",
+            "hostNames": "服务器主机名列表",
+            "segmentBindRouteIntervalTime": "路段绑定路径间隔时间（毫秒）",
+            "segmentBindRoutePointCount": "路段绑定路径点数量"
+        };
+
+        const configs = {
+            "0": {"lampCountdownScene":{"fuzzyMatchMaxDistance":500.0,"maxTrustTime":100000,"requestRate":2,"checkDiffCountdownLimit":3,"countdownDiffLimit":2},"suggestSpeedScene":{"sceneEndDistance":100.0,"calculateCongesionIndex":true,"calculateAverageSpeed":true,"roadClearIndex":1.5,"minCongestionSpeed":45.0,"remindText":{"2002":"建议绿灯通行车速%s公里每小时"},"defaultMaxSpeed":60.0,"defaultMinSpeed":35.0,"defaultRemainSafePassTime":4,"maxSafeSpeedRate":1.0,"glosaSingleSpeedLimit":31,"glosaSpeedLimit":25},"greenStartRemindScene":{"maxSpeed":5.0,"maxRemindDistance":100.0,"maxRemindRedLampCountdown":3,"remindText":{"3001":"即将绿灯，准备起步"}},"lampColorSwitchRemindScene":{"brakeDeceleration":4.0,"greenCountdown":5.0,"minStopTime":3.0,"minStopDistance":20.0,"rlrDistanceLimit":50,"minSpeedLimit":10},"otherScene":{"crossOutBearingLimit":120.0,"removeLinkPointProtectDistance":10.0,"naviPointToTurnPointDistance":25.0,"maxCheckPointCount":50.0,"routeWithCarBindDistanceLimit":60,"routeWithCarBindBearingLimit":100.0,"routeWithLampBindDistanceLimit":60,"routeWithLampBindBearingLimit":140.0,"endPointToLampDistanceLimit":50,"naviPointCreateDistanceLimit":50,"maxLampCenterPointToTurnPointDistance":55,"routeLampCenterPointToBdLampDistance":40,"tryCheckRouteLampCenterPointCount":30,"maxTurnPointCacheSize":4,"maxLampCenterPointGenerateLimit":30,"useNavigationSpeedLimit":true,"filterTypes":[0,8,20,10,15,11,12,23],"checkTokenExpireFrequency":1800000,"crossOutUseOriginalLocation":false,"filterLampRepeatDistance":25,"searchMatchedLampCenterPointPointCount":5,"nearbyTurnPointNaviPointCount":5,"nearNaviPointsForStaticLampCount":3,"requestStaticLampDataMaxPointCount":200,"enableCrossOutDistanceProtectSpeedLimit":50}},
+            "1": {"lampCountdownScene":{"fuzzyMatchMaxDistance":500.0,"maxTrustTime":100000,"requestRate":2,"checkDiffCountdownLimit":3,"countdownDiffLimit":2,"filterTypes":[]},"suggestSpeedScene":{"sceneEndDistance":200.0,"calculateCongesionIndex":true,"calculateAverageSpeed":true,"roadClearIndex":1.5,"minCongestionSpeed":45.0,"remindText":{"2002":"建议绿灯通行车速%s公里每小时"},"defaultMaxSpeed":60.0,"defaultMinSpeed":35.0,"defaultRemainSafePassTime":4,"maxSafeSpeedRate":1.0,"glosaSingleSpeedLimit":35,"glosaSpeedLimit":25},"greenStartRemindScene":{"maxSpeed":5.0,"maxRemindDistance":100.0,"maxRemindRedLampCountdown":3,"remindText":{"3001":"即将绿灯，准备起步"}},"lampColorSwitchRemindScene":{"brakeDeceleration":4.0,"greenCountdown":5.0,"minStopTime":3.0,"minStopDistance":20.0,"rlrDistanceLimit":50,"minSpeedLimit":10},"otherScene":{"crossOutBearingLimit":130.0,"removeLinkPointProtectDistance":18.0,"naviPointToTurnPointDistance":25.0,"maxCheckPointCount":50.0,"routeWithCarBindDistanceLimit":60,"routeWithCarBindBearingLimit":100.0,"routeWithLampBindDistanceLimit":60,"routeWithLampBindBearingLimit":140.0,"endPointToLampDistanceLimit":30,"naviPointCreateDistanceLimit":50,"maxLampCenterPointToTurnPointDistance":55,"routeLampCenterPointToBdLampDistance":50,"tryCheckRouteLampCenterPointCount":30,"maxTurnPointCacheSize":4,"maxLampCenterPointGenerateLimit":30,"useNavigationSpeedLimit":true,"filterTypes":[0,8,20,10,15,11,12,23],"checkTokenExpireFrequency":1800000,"crossOutUseOriginalLocation":false,"filterLampRepeatDistance":25,"searchMatchedLampCenterPointPointCount":5,"nearbyTurnPointNaviPointCount":5,"nearNaviPointsForStaticLampCount":3,"requestStaticLampDataMaxPointCount":200,"enableCrossOutDistanceProtectSpeedLimit":50,"requestStaticLampRemoveHeadPointCount":0}},
+            "2": {"lampCountdownScene":{"fuzzyMatchMaxDistance":500.0,"maxTrustTime":100000,"requestRate":2,"checkDiffCountdownLimit":3,"countdownDiffLimit":2,"filterTypes":[]},"suggestSpeedScene":{"sceneEndDistance":200.0,"calculateCongesionIndex":true,"calculateAverageSpeed":true,"roadClearIndex":1.5,"minCongestionSpeed":45.0,"remindText":{"2002":"建议绿灯通行车速%s公里每小时"},"defaultMaxSpeed":60.0,"defaultMinSpeed":35.0,"defaultRemainSafePassTime":4,"maxSafeSpeedRate":1.0,"glosaSingleSpeedLimit":35,"glosaSpeedLimit":25},"greenStartRemindScene":{"maxSpeed":5.0,"maxRemindDistance":100.0,"maxRemindRedLampCountdown":3,"remindText":{"3001":"即将绿灯，准备起步"}},"lampColorSwitchRemindScene":{"brakeDeceleration":4.0,"greenCountdown":5.0,"minStopTime":3.0,"minStopDistance":20.0,"rlrDistanceLimit":50,"minSpeedLimit":10},"otherScene":{"crossOutBearingLimit":130.0,"removeLinkPointProtectDistance":18.0,"naviPointToTurnPointDistance":25.0,"maxCheckPointCount":50.0,"routeWithCarBindDistanceLimit":60,"routeWithCarBindBearingLimit":100.0,"routeWithLampBindDistanceLimit":60,"routeWithLampBindBearingLimit":140.0,"endPointToLampDistanceLimit":50,"naviPointCreateDistanceLimit":50,"maxLampCenterPointToTurnPointDistance":55,"routeLampCenterPointToBdLampDistance":50,"tryCheckRouteLampCenterPointCount":30,"maxTurnPointCacheSize":4,"maxLampCenterPointGenerateLimit":30,"useNavigationSpeedLimit":true,"filterTypes":[0,8,20,10,15,11,12,23],"checkTokenExpireFrequency":1800000,"crossOutUseOriginalLocation":false,"filterLampRepeatDistance":25,"searchMatchedLampCenterPointPointCount":5,"nearbyTurnPointNaviPointCount":5,"nearNaviPointsForStaticLampCount":3,"requestStaticLampDataMaxPointCount":200,"enableCrossOutDistanceProtectSpeedLimit":50,"requestStaticLampRemoveHeadPointCount":0,"checkRepeatLampNearPointCount":5,"nonDirectionShow":1,"hostNames":["bmw-stag.v2x.clouda.com","bmw-prod.v2x.clouda.com","yunkong.v2x.clouda.com"],"segmentBindRouteIntervalT":100,"segmentBindRoutePointCount":10}},
+            "3": {"lampCountdownScene":{"fuzzyMatchMaxDistance":500.0,"maxTrustTime":100000,"requestRate":2,"checkDiffCountdownLimit":3,"countdownDiffLimit":2,"filterTypes":[]},"suggestSpeedScene":{"sceneEndDistance":200.0,"calculateCongesionIndex":true,"calculateAverageSpeed":true,"roadClearIndex":1.5,"minCongestionSpeed":45.0,"remindText":{"2002":"建议绿灯通行车速%s公里每小时"},"defaultMaxSpeed":60.0,"defaultMinSpeed":35.0,"defaultRemainSafePassTime":4,"maxSafeSpeedRate":1.0,"glosaSingleSpeedLimit":35,"glosaSpeedLimit":25},"greenStartRemindScene":{"maxSpeed":5.0,"maxRemindDistance":100.0,"maxRemindRedLampCountdown":3,"remindText":{"3001":"即将绿灯，准备起步"}},"lampColorSwitchRemindScene":{"brakeDeceleration":4.0,"greenCountdown":5.0,"minStopTime":3.0,"minStopDistance":20.0,"rlrDistanceLimit":50,"minSpeedLimit":10},"otherScene":{"crossOutBearingLimit":130.0,"removeLinkPointProtectDistance":18.0,"naviPointToTurnPointDistance":25.0,"maxCheckPointCount":50.0,"routeWithCarBindDistanceLimit":60,"routeWithCarBindBearingLimit":100.0,"routeWithLampBindDistanceLimit":60,"routeWithLampBindBearingLimit":140.0,"endPointToLampDistanceLimit":50,"naviPointCreateDistanceLimit":50,"maxLampCenterPointToTurnPointDistance":55,"routeLampCenterPointToBdLampDistance":50,"tryCheckRouteLampCenterPointCount":30,"maxTurnPointCacheSize":4,"maxLampCenterPointGenerateLimit":30,"useNavigationSpeedLimit":true,"filterTypes":[0,8,20,10,15,11,12,23],"checkTokenExpireFrequency":1800000,"crossOutUseOriginalLocation":false,"filterLampRepeatDistance":25,"searchMatchedLampCenterPointPointCount":5,"nearbyTurnPointNaviPointCount":5,"nearNaviPointsForStaticLampCount":3,"requestStaticLampDataMaxPointCount":200,"enableCrossOutDistanceProtectSpeedLimit":50,"requestStaticLampRemoveHeadPointCount":0,"checkRepeatLampNearPointCount":5,"nonDirectionShow":1,"hostNames":["bmw-stag.v2x.clouda.com","bmw-prod.v2x.clouda.com","yunkong.v2x.clouda.com"],"segmentBindRouteIntervalTime":100,"segmentBindRoutePointCount":10}},
+            "4": {"lampCountdownScene":{"fuzzyMatchMaxDistance":500.0,"maxTrustTime":100000,"requestRate":2,"checkDiffCountdownLimit":3,"countdownDiffLimit":2,"filterTypes":[]},"suggestSpeedScene":{"sceneEndDistance":200.0,"calculateCongesionIndex":true,"calculateAverageSpeed":true,"roadClearIndex":1.5,"minCongestionSpeed":45.0,"remindText":{"2002":"建议绿灯通行车速%s公里每小时"},"defaultMaxSpeed":60.0,"defaultMinSpeed":35.0,"defaultRemainSafePassTime":4,"maxSafeSpeedRate":1.0,"glosaSingleSpeedLimit":35,"glosaSpeedLimit":25},"greenStartRemindScene":{"maxSpeed":5.0,"maxRemindDistance":100.0,"maxRemindRedLampCountdown":3,"remindText":{"3001":"即将绿灯，准备起步"}},"lampColorSwitchRemindScene":{"brakeDeceleration":4.0,"greenCountdown":5.0,"minStopTime":3.0,"minStopDistance":20.0,"rlrDistanceLimit":50,"minSpeedLimit":10},"otherScene":{"crossOutBearingLimit":130.0,"removeLinkPointProtectDistance":18.0,"naviPointToTurnPointDistance":25.0,"maxCheckPointCount":50.0,"routeWithCarBindDistanceLimit":60,"routeWithCarBindBearingLimit":100.0,"routeWithLampBindDistanceLimit":60,"routeWithLampBindBearingLimit":140.0,"endPointToLampDistanceLimit":50,"naviPointCreateDistanceLimit":50,"maxLampCenterPointToTurnPointDistance":55,"routeLampCenterPointToBdLampDistance":50,"tryCheckRouteLampCenterPointCount":30,"maxTurnPointCacheSize":4,"maxLampCenterPointGenerateLimit":30,"useNavigationSpeedLimit":true,"filterTypes":[0,8,20,10,15,11,12,23],"checkTokenExpireFrequency":1800000,"crossOutUseOriginalLocation":false,"filterLampRepeatDistance":25,"searchMatchedLampCenterPointPointCount":5,"nearbyTurnPointNaviPointCount":5,"nearNaviPointsForStaticLampCount":3,"requestStaticLampDataMaxPointCount":200,"enableCrossOutDistanceProtectSpeedLimit":50,"requestStaticLampRemoveHeadPointCount":0,"checkRepeatLampNearPointCount":5,"nonDirectionShow":1,"hostNames":["bmw-stag.v2x.clouda.com","bmw-prod.v2x.clouda.com","yunkong.v2x.clouda.com"],"segmentBindRouteIntervalTime":100,"segmentBindRoutePointCount":10}}
+        };
+
+        const paramScenes = {
+            // lampCountdownScene 参数
+            "fuzzyMatchMaxDistance": "lampCountdownScene",
+            "maxTrustTime": "lampCountdownScene",
+            "requestRate": "lampCountdownScene",
+            "checkDiffCountdownLimit": "lampCountdownScene",
+            "countdownDiffLimit": "lampCountdownScene",
+          
+            
+            // suggestSpeedScene 参数
+            "sceneEndDistance": "suggestSpeedScene",
+            "calculateCongesionIndex": "suggestSpeedScene",
+            "calculateAverageSpeed": "suggestSpeedScene",
+            "roadClearIndex": "suggestSpeedScene",
+            "minCongestionSpeed": "suggestSpeedScene",
+            "defaultMaxSpeed": "suggestSpeedScene",
+            "defaultMinSpeed": "suggestSpeedScene",
+            "defaultRemainSafePassTime": "suggestSpeedScene",
+            "maxSafeSpeedRate": "suggestSpeedScene",
+            "glosaSingleSpeedLimit": "suggestSpeedScene",
+            "glosaSpeedLimit": "suggestSpeedScene",
+            "remindText": "suggestSpeedScene",
+
+            // greenStartRemindScene 参数
+            "maxSpeed": "greenStartRemindScene",
+            "maxRemindDistance": "greenStartRemindScene",
+            "maxRemindRedLampCountdown": "greenStartRemindScene",
+            
+            // lampColorSwitchRemindScene 参数
+            "brakeDeceleration": "lampColorSwitchRemindScene",
+            "greenCountdown": "lampColorSwitchRemindScene",
+            "minStopTime": "lampColorSwitchRemindScene",
+            "minStopDistance": "lampColorSwitchRemindScene",
+            "rlrDistanceLimit": "lampColorSwitchRemindScene",
+            "minSpeedLimit": "lampColorSwitchRemindScene",
+            
+            // 其他参数
+            "crossOutBearingLimit": "otherScene",
+            "removeLinkPointProtectDistance": "otherScene",
+            "naviPointToTurnPointDistance": "otherScene",
+            "maxCheckPointCount": "otherScene",
+            "routeWithCarBindDistanceLimit": "otherScene",
+            "routeWithCarBindBearingLimit": "otherScene",
+            "routeWithLampBindDistanceLimit": "otherScene",
+            "routeWithLampBindBearingLimit": "otherScene",
+            "endPointToLampDistanceLimit": "otherScene",
+            "naviPointCreateDistanceLimit": "otherScene",
+            "maxLampCenterPointToTurnPointDistance": "otherScene",
+            "routeLampCenterPointToBdLampDistance": "otherScene",
+            "tryCheckRouteLampCenterPointCount": "otherScene",
+            "maxTurnPointCacheSize": "otherScene",
+            "maxLampCenterPointGenerateLimit": "otherScene",
+            "useNavigationSpeedLimit": "otherScene",
+            "checkTokenExpireFrequency": "otherScene",
+            "crossOutUseOriginalLocation": "otherScene",
+            "filterLampRepeatDistance": "otherScene",
+            "searchMatchedLampCenterPointPointCount": "otherScene",
+            "nearbyTurnPointNaviPointCount": "otherScene",
+            "nearNaviPointsForStaticLampCount": "otherScene",
+            "requestStaticLampDataMaxPointCount": "otherScene",
+            "enableCrossOutDistanceProtectSpeedLimit": "otherScene",
+            "requestStaticLampRemoveHeadPointCount": "otherScene",
+            "checkRepeatLampNearPointCount": "otherScene",
+            "nonDirectionShow": "otherScene",
+            "hostNames": "otherScene",
+            "segmentBindRouteIntervalTime": "otherScene",
+            "segmentBindRoutePointCount": "otherScene",
+            "filterTypes": "otherScene",
+            "filterTypes_lamp": "lampCountdownScene",
+            "filterTypes_other": "otherScene"
+        };
+
+      
+
+        function renderParamCard(key, description, versions) {
+            // 特殊处理filterTypes参数
+            if (key === 'filterTypes_lamp' || key === 'filterTypes_other') {
+                const scene = key === 'filterTypes_lamp' ? 'lampCountdownScene' : 'otherScene';
+                const values = {};
+                for (let v = 0; v <= 4; v++) {
+                    const config = configs[v];
+                    if (config) {
+                        const filterTypes = key === 'filterTypes_lamp' 
+                            ? (config.lampCountdownScene?.filterTypes || [])
+                            : (config.filterTypes || config.otherScene?.filterTypes || []);
+                        values[v] = filterTypes;
+                    }
+                }
+                versions = values;
+            }
+
+            const card = document.createElement('div');
+            card.className = `param-card ${paramScenes[key] || 'otherScene'}`;
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'param-name';
+            nameDiv.textContent = key;
+            
+            const descDiv = document.createElement('div');
+            descDiv.className = 'param-desc';
+            descDiv.textContent = description;
+            
+            const valuesDiv = document.createElement('div');
+            valuesDiv.className = 'version-values';
+            
+            // 对相同值的版本进行分组
+            const valueGroups = {};
+
+            for (let v = 0; v <= 4; v++) {
+                const val = versions[v];
+                if (val !== undefined) {
+                    const valStr = JSON.stringify(val);
+                    if (!valueGroups[valStr]) {
+                        valueGroups[valStr] = [];
+                    }
+                    valueGroups[valStr].push(v);
+                }
+            }
+
+            // 获取SDK版本号映射
+            const sdkVersions = {
+                '0': '2.8.3 ~ 2.8.8',
+                '1': '2.8.9 ~ 2.8.9.1',
+                '2': '2.8.9.2',
+                '3': '2.8.9.5 ~ 2.9.1',
+                '4': '2.9.2+'
+            };
+
+            // 为每个不同的值创建一个版本值显示块，并按版本号排序
+            for (const [valStr, versionList] of Object.entries(valueGroups)) {
+                const valueDiv = document.createElement('div');
+                valueDiv.className = 'version-value';
+                
+                const versionLabel = document.createElement('div');
+                versionLabel.className = 'version-label';
+                versionLabel.textContent = versionList.map(v => sdkVersions[v]).join(', ');
+                
+                const value = document.createElement('div');
+                value.className = 'value';
+                if (valStr === 'undefined') {
+                    value.textContent = '未设置';
+                } else {
+                    try {
+                        const parsedValue = JSON.parse(valStr);
+                        if (Array.isArray(parsedValue)) {
+                            value.textContent = parsedValue.join(', ');
+                        } else {
+                            value.textContent = valStr;
+                        }
+                    } catch (e) {
+                        value.textContent = valStr;
+                    }
+                }
+                
+                valueDiv.appendChild(versionLabel);
+                valueDiv.appendChild(value);
+                valuesDiv.appendChild(valueDiv);
+            }
+            
+            card.appendChild(nameDiv);
+            card.appendChild(descDiv);
+            card.appendChild(valuesDiv);
+            return card;
+        }
+
+        function showVersion(version) {
+            const content = document.getElementById('content');
+            content.innerHTML = '';
+            
+         
+            
+            function processConfig(prefix, obj) {
+                for (const [key, value] of Object.entries(obj)) {
+                    const fullKey = prefix ? `${prefix}.${key}` : key;
+                    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                        if (paramDescriptions[key]) {
+                            const sceneTitle = document.createElement('div');
+                            sceneTitle.className = `scene-title ${key}`;
+                            sceneTitle.textContent = paramDescriptions[key];
+                            content.appendChild(sceneTitle);
+
+                            // 在场景标题后立即添加对应的filterTypes
+                            if (key === 'lampCountdownScene') {
+                                content.appendChild(renderParamCard('filterTypes_lamp', '红绿灯场景过滤类型',
+                                    Object.fromEntries(Object.entries(configs).map(([k, v]) => [
+                                        k,
+                                        v.lampCountdownScene?.filterTypes || []
+                                    ]))));
+                            } else if (key === 'otherScene') {
+                                content.appendChild(renderParamCard('filterTypes_other', '其他场景过滤类型',
+                                    Object.fromEntries(Object.entries(configs).map(([k, v]) => [
+                                        k,
+                                        v.filterTypes || v.otherScene?.filterTypes || []
+                                    ]))));
+                            }
+                        }
+                        processConfig(fullKey, value);
+                    } else {
+                        const versions = {};
+                        for (let v = 0; v <= 4; v++) {
+                            const vConfig = configs[v.toString()];
+                            if (vConfig) {
+                                if (key !== 'filterTypes') {
+                                    const parts = fullKey.split('.');
+                                    let val = vConfig;
+                                    for (const part of parts) {
+                                        val = val && val[part];
+                                    }
+                                    if (val !== undefined) {
+                                        versions[v] = val;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (key !== 'filterTypes' && paramDescriptions[key]) {
+                            content.appendChild(renderParamCard(key, paramDescriptions[key], versions));
+                        }
+                    }
+                }
+            }
+            
+            processConfig('', configs['0']);
+        }
+        
+        // 初始化显示所有版本
+        showVersion('all');
+        
+    </script>
+</body>
+</html>

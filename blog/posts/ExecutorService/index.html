@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深入理解Java线程池ExecutorService</title>
+    <link rel="stylesheet" href="../../assets/post.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+</head>
+<body>
+    <div class="page-container">
+        <!-- 左侧边栏 -->
+        <aside class="left-sidebar">
+            <nav class="post-nav">
+                <a href="../../index.html" class="back-to-blog">← 返回博客首页</a>
+            </nav>
+            <div class="article-toc">
+                <div class="toc-header">
+                    <span class="toc-title">目录</span>
+                </div>
+                <div class="toc-content" id="toc"></div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <div class="content-scroll">
+                <article class="post-content" id="post-content"></article>
+            </div>
+        </main>
+
+        <!-- 右侧代码区 -->
+        <aside class="right-sidebar">
+            <div class="code-panel">
+                <div class="code-explorer">
+                    <div class="explorer-header">
+                        <span class="explorer-title">代码示例</span>
+                    </div>
+                    <div class="explorer-content" id="code-examples">
+                        <ul class="file-tree">
+                            <li class="file active" data-ext="V2xThreadPoolManager">
+                                <i class="fas fa-file-code"></i> V2xThreadPoolManager.java
+                            </li>
+                            <li class="file" data-ext="V2xThreadPoolUtil">
+                                <i class="fas fa-file-code"></i> V2xThreadPoolUtil.java
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="code-content">
+                    <pre><code class="language-java" id="code-display">
+// 代码内容将通过JavaScript动态加载
+                    </code></pre>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- 引入依赖库 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.0.0/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/java.min.js"></script>
+
+    <!-- 引入页面脚本 -->
+    <script type="module">
+        // 导入文章内容和代码示例
+        import { postContent } from './post.js';
+        import { codeContent } from './code.js';
+
+        // 显示调试信息
+        console.log('开始加载页面...');
+        console.log('postContent:', postContent);
+        console.log('codeContent:', codeContent);
+
+        // 配置marked选项
+        marked.setOptions({
+            gfm: true,
+            breaks: true,
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    try {
+                        return hljs.highlight(code, { language: lang }).value;
+                    } catch (e) {
+                        console.error('代码高亮失败:', e);
+                    }
+                }
+                return code;
+            }
+        });
+
+        // 渲染文章内容
+        function renderPost() {
+            console.log('开始渲染文章...');
+            const postContentElement = document.getElementById('post-content');
+            const tocElement = document.getElementById('toc');
+
+            if (!postContentElement || !tocElement) {
+                console.error('找不到必要的DOM元素');
+                return;
+            }
+
+            // 清空加载提示
+            postContentElement.innerHTML = '';
+
+            // 渲染标题
+            const titleElement = document.createElement('h1');
+            titleElement.textContent = postContent.title;
+            postContentElement.appendChild(titleElement);
+
+            // 渲染日期
+            const dateElement = document.createElement('div');
+            dateElement.className = 'post-date';
+            dateElement.textContent = postContent.date;
+            postContentElement.appendChild(dateElement);
+
+            // 渲染文章内容
+            postContent.sections.forEach((section, index) => {
+                console.log(`渲染第 ${index + 1} 个章节:`, section.title);
+
+                // 渲染主标题
+                const sectionTitle = document.createElement('h2');
+                sectionTitle.id = section.id;
+                sectionTitle.textContent = section.title;
+                postContentElement.appendChild(sectionTitle);
+
+                // 添加到目录
+                const tocItem = document.createElement('div');
+                const tocLink = document.createElement('a');
+                tocLink.href = `#${section.id}`;
+                tocLink.textContent = section.title;
+                tocItem.appendChild(tocLink);
+                tocElement.appendChild(tocItem);
+
+                // 渲染内容
+                if (section.content) {
+                    const contentElement = document.createElement('div');
+                    contentElement.className = 'section-content';
+                    contentElement.innerHTML = marked.parse(section.content);
+                    postContentElement.appendChild(contentElement);
+                }
+
+                // 渲染子章节
+                if (section.subsections) {
+                    section.subsections.forEach((subsection, subIndex) => {
+                        console.log(`渲染子章节 ${index + 1}.${subIndex + 1}:`, subsection.title);
+
+                        const subTitle = document.createElement('h3');
+                        subTitle.textContent = subsection.title;
+                        postContentElement.appendChild(subTitle);
+
+                        if (subsection.content) {
+                            const subContentElement = document.createElement('div');
+                            subContentElement.className = 'subsection-content';
+                            subContentElement.innerHTML = marked.parse(subsection.content);
+                            postContentElement.appendChild(subContentElement);
+                        }
+
+                        if (subsection.code) {
+                            const codeElement = document.createElement('pre');
+                            const codeContent = document.createElement('code');
+                            codeContent.className = `language-${subsection.code.language}`;
+                            codeContent.textContent = subsection.code.content;
+                            codeElement.appendChild(codeContent);
+                            postContentElement.appendChild(codeElement);
+                            hljs.highlightElement(codeContent);
+                        }
+                    });
+                }
+
+                // 渲染代码块
+                if (section.code) {
+                    const codeElement = document.createElement('pre');
+                    const codeContent = document.createElement('code');
+                    codeContent.className = `language-${section.code.language}`;
+                    codeContent.textContent = section.code.content;
+                    codeElement.appendChild(codeContent);
+                    postContentElement.appendChild(codeElement);
+                    hljs.highlightElement(codeContent);
+                }
+            });
+
+            console.log('文章渲染完成');
+        }
+
+        // 渲染代码示例
+        function renderCode() {
+            console.log('开始渲染代码示例...');
+            const preElement = document.querySelector('.code-content pre');
+            
+            if (!preElement) {
+                console.error('找不到代码容器');
+                return;
+            }
+
+            // 创建并设置初始代码
+            function createCodeElement(code) {
+                const codeElement = document.createElement('code');
+                codeElement.id = 'code-display';
+                codeElement.className = 'language-java';
+                codeElement.textContent = code;
+                return codeElement;
+            }
+
+            // 设置初始代码
+            const defaultCode = codeContent['V2xThreadPoolManager'];
+            if (defaultCode) {
+                const initialCodeElement = createCodeElement(defaultCode);
+                preElement.innerHTML = ''; // 清空pre标签
+                preElement.appendChild(initialCodeElement);
+                hljs.highlightElement(initialCodeElement);
+            }
+
+            // 添加代码切换功能
+            document.querySelectorAll('.file').forEach(file => {
+                file.addEventListener('click', function() {
+                    const codeKey = this.getAttribute('data-ext');
+                    console.log('切换代码示例:', codeKey);
+                    const code = codeContent[codeKey];
+                    if (code) {
+                        // 创建新的代码元素
+                        const newCodeElement = createCodeElement(code);
+                        
+                        // 清空并添加新元素
+                        preElement.innerHTML = '';
+                        preElement.appendChild(newCodeElement);
+
+                        // 高亮新元素
+                        hljs.highlightElement(newCodeElement);
+                        
+                        // 更新active状态
+                        document.querySelectorAll('.file').forEach(f => 
+                            f.classList.remove('active'));
+                        this.classList.add('active');
+                    }
+                });
+            });
+
+            console.log('代码示例渲染完成');
+        }
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM加载完成，开始初始化页面...');
+            try {
+                // 初始化代码高亮
+                hljs.configure({
+                    languages: ['java'],
+                    theme: 'github-dark'
+                });
+
+                // 渲染内容
+                renderPost();
+                renderCode();
+
+                console.log('页面初始化完成');
+            } catch (error) {
+                console.error('页面初始化失败:', error);
+                document.getElementById('post-content').innerHTML = 
+                    '<div class="error-message">页面加载失败，请刷新重试</div>';
+            }
+        });
+    </script>
+</body>
+</html>

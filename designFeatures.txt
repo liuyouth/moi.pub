@@ -1,0 +1,93 @@
+# 个人内容管理平台设计规范
+
+## 1. 文件结构规范
+```
+assets/
+  ├── css/
+  │   └── common.css    (公共样式)
+  └── js/
+      └── main.js       (公共脚本)
+```
+
+## 2. 样式规范
+
+### 2.1 颜色系统
+- 主色：var(--primary-color)      #ff3366
+- 次色：var(--secondary-color)    #00ccff
+- 强调色：var(--accent-color)     #7c4dff
+- 主要文本：var(--text-primary)   #2c3e50
+- 次要文本：var(--text-secondary) #7f8c8d
+- 渐变起始：var(--gradient-start) #ff3366
+- 渐变结束：var(--gradient-end)   #00ccff
+
+### 2.2 字体系统
+- 主字体：'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif
+- 标题大小：1.8rem
+- 正文大小：1.1rem
+- 行高：1.6
+
+### 2.3 间距规范
+- 基础间距：1rem
+- 卡片间距：2rem
+- 内部元素间距：1.5rem
+- 移动端卡片间距：1rem
+
+### 2.4 卡片样式
+- 背景色：rgba(255, 255, 255, 0.9)
+- 圆角：15px
+- 阴影：var(--card-shadow)
+- 边框：1px solid rgba(255, 255, 255, 0.2)
+- 模糊效果：backdrop-filter: blur(10px)
+
+### 2.5 按钮样式
+- 内边距：0.8rem 1.5rem
+- 圆角：25px
+- 过渡效果：0.3s ease
+- 悬停缩放：1.05
+
+## 3. 响应式设计
+- 移动端断点：768px
+- 布局调整：
+  * 卡片宽度自适应
+  * 间距减小
+  * 垂直布局优化
+
+## 4. 动画效果
+- 过渡时间：0.3s
+- 动画曲线：ease
+- 背景渐变动画：20s
+- 文字滚动动画：自适应速度
+
+## 5. 交互规范
+- 卡片悬停效果：上移+阴影加深
+- 按钮悬停：颜色变化+轻微放大
+- 链接悬停：颜色变化
+- 社交图标悬停：颜色变化+缩放
+
+## 6. 图片规范
+- 头像尺寸：120px x 120px
+- 头像边框：3px solid #fff
+- 图片圆角：根据容器类型调整
+
+## 7. 代码规范
+- CSS 类名：使用 kebab-case
+- JavaScript 变量/函数：使用 camelCase
+- 保持代码注释清晰
+- 模块化组织代码
+
+## 8. 性能优化
+- 使用 CSS 变量便于主题定制
+- 合理使用 CSS 动画
+- JavaScript 事件节流
+- 响应式图片加载
+
+## 9. 辅助功能
+- 语义化 HTML 结构
+- 合适的颜色对比度
+- 清晰的焦点状态
+- 适当的文本大小
+
+## 10. 浏览器兼容
+- 添加浏览器前缀
+- 使用标准 CSS 属性
+- 降级处理方案 

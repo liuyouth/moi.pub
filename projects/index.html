@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目 - 个人内容管理平台</title>
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- 项目页面特定样式 -->
+    <style>
+        /* CSS变量定义新配色 */
+        :root {
+            --primary-color: #00B4D8;
+            --secondary-color: #0077B6;
+            --accent-light: #90E0EF;
+            --accent-dark: #03045E;
+            --text-on-gradient: #FFFFFF;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --tag-bg: rgba(0, 180, 216, 0.08);
+            --tag-color: #0077B6;
+            --tag-border: rgba(0, 180, 216, 0.2);
+        }
+
+        /* 基础动画效果 */
+        @keyframes cardFloat {
+            0% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(0.5deg); }
+            100% { transform: translateY(0) rotate(0deg); }
+        }
+
+        @keyframes tagPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes linkShine {
+            0% { background-position: 200% center; }
+            100% { background-position: -200% center; }
+        }
+
+        .projects-container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 2rem 4rem;
+            min-height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            isolation: isolate;
+        }
+
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2.5rem;
+            margin: 2rem auto;
+            width: 100%;
+            padding: 1rem;
+            position: relative;
+            isolation: isolate;
+        }
+
+        .projects-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            background: linear-gradient(120deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: 20px;
+            color: var(--text-on-gradient);
+            padding: min(4rem, 5vh);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 119, 182, 0.15);
+        }
+
+        .project-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            box-shadow: 
+                0 4px 20px rgba(0, 0, 0, 0.05),
+                0 8px 32px rgba(0, 180, 216, 0.1);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            isolation: isolate;
+            transform-style: preserve-3d;
+            transform: translate3d(0, 0, 0);
+            will-change: transform, box-shadow;
+            min-height: 340px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .project-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                45deg,
+                rgba(0, 180, 216, 0.05) 0%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+
+        .project-card:hover {
+            transform: translate3d(0, -12px, 100px) scale(1.02);
+            box-shadow: 
+                0 12px 40px rgba(0, 0, 0, 0.1),
+                0 16px 48px rgba(0, 180, 216, 0.2);
+        }
+
+        .project-card:hover::before {
+            opacity: 1;
+        }
+
+        .project-content {
+            position: relative;
+            padding: 2rem;
+            z-index: 2;
+            transform: translateZ(20px);
+            pointer-events: none;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .project-content > * {
+            pointer-events: auto;
+        }
+
+        .project-title {
+            font-size: 1.8rem;
+            margin-bottom: 1.2rem;
+            color: var(--accent-dark);
+            font-weight: 700;
+            position: relative;
+            padding-bottom: 0.8rem;
+            transition: color 0.3s ease;
+        }
+
+        .project-description {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.7;
+            font-size: 1.1rem;
+            flex-grow: 1;
+        }
+
+        .project-tags {
+            position: relative;
+            z-index: 3;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin-bottom: 2rem;
+        }
+
+        .project-tag {
+            background: var(--tag-bg);
+            padding: 0.6rem 1.2rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            color: var(--tag-color);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .project-link {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+        }
+
+        .project-link i {
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 1600px) {
+            .projects-container {
+                padding: 2rem;
+            }
+            
+            .projects-grid {
+                gap: 2rem;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .projects-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .projects-container {
+                padding: 1rem;
+            }
+
+            .projects-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+                padding: 0.5rem;
+            }
+
+            .project-card {
+                min-height: 300px;
+            }
+
+            .project-content {
+                padding: 1.5rem;
+            }
+
+            .project-title {
+                font-size: 1.6rem;
+            }
+
+            .project-description {
+                font-size: 1rem;
+            }
+
+            .project-tag {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+
+            .project-link {
+                padding: 0.8rem 1.8rem;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <div class="projects-container">
+        <header class="projects-header">
+            <h1 class="projects-title">项目展示</h1>
+            <p class="projects-description">展示个人项目和开源贡献</p>
+        </header>
+
+        <main>
+            <div class="projects-grid" id="projectsGrid"></div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { projectsData } from './data.js';
+
+        function renderProjects() {
+            const projectsGrid = document.getElementById('projectsGrid');
+            projectsGrid.innerHTML = projectsData.projects.map(project => `
+                <div class="project-card">
+                    <div class="project-content">
+                        <h2 class="project-title">${project.title}</h2>
+                        <p class="project-description">${project.description}</p>
+                        <div class="project-tags">
+                            ${project.tags.map(tag => `
+                                <span class="project-tag">${tag}</span>
+                            `).join('')}
+                        </div>
+                        <a href="${project.url}" class="project-link">
+                            <i class="fas fa-external-link-alt"></i> 查看演示
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.addEventListener('load', renderProjects);
+    </script>
+</body>
+</html>
