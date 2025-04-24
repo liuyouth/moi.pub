@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>双开仓套利策略模拟器 (三图表 + 交易标记)</title>
+    <style>
+        /* CSS 基础样式 */
+        body { font-family: sans-serif; margin: 0; line-height: 1.6; background-color: #f0f2f5; }
+        .container { max-width: 1400px; /* 稍宽以容纳三图表 */ margin: 10px auto; padding: 15px; background-color: #f9f9f9; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
+        h1, h2, h3 { color: #333; text-align: center; margin-bottom: 20px;}
+        .input-section, .results-section { margin-bottom: 30px; padding: 20px; background-color: #fff; border-radius: 5px; border: 1px solid #eee;}
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555;}
+        input[type="number"], textarea { width: calc(100% - 22px); padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em;}
+        textarea { min-height: 100px; font-family: monospace;}
+        button { display: block; width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 4px; font-size: 1.1em; cursor: pointer; transition: background-color 0.3s ease;}
+        button:hover { background-color: #0056b3; }
+        /* 图表容器布局: Flexbox，允许换行 */
+        .charts-wrapper { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 15px; margin: 20px 0; }
+        .chart-container {
+            width: calc(33.333% - 10px); /* 三列布局 */
+            height: 500px; /* 调整高度 */
+            margin: 0;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            min-width: 300px; /* 最小宽度 */
+        }
+        /* 表格 */
+        .table-container { max-height: 400px; overflow-y: auto; width: 100%; margin-top: 20px; border: 1px solid #ccc;}
+        table { border-collapse: collapse; width: 100%; font-size: 0.9em;}
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; position: sticky; top: 0; z-index: 1;}
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        /* 汇总与注释 */
+        .summary { background-color: #eef; padding: 15px; border-radius: 5px; margin-top: 20px;}
+        .note { font-size: 0.8em; color: #777; margin-top: 15px;}
+        /* 辅助样式 */
+        .action { color: blue; }
+        .profit { color: green; }
+        .loss { color: red; }
+        .funding { color: darkcyan; }
+        pre { background-color: #eee; padding: 10px; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; font-size: 0.9em;}
+         /* 响应式调整：在中等屏幕下单列显示图表 */
+         @media (max-width: 1100px) {
+            .charts-wrapper { flex-direction: column; align-items: center; }
+            .chart-container { width: calc(100% - 2px); /* 减去边框宽度 */}
+         }
+         @media (max-width: 600px) {
+             .chart-container { height: 400px; } /* 移动端减小高度 */
+         }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.3.3/dist/echarts.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>双开仓套利策略模拟器 (三图表 + 交易标记)</h1>
+    <p class="note">模拟“资金费率套利与波动对冲策略”。采用精确P&L跟踪。下方包含三个图表：仓位价值与价格(含交易标记)、收益分析、BTC仓位数量变化。</p>
+
+    <div class="input-section">
+        <h2>输入参数</h2>
+        <label for="initialPrice">初始/平衡价格 (USD):</label>
+        <input type="number" id="initialPrice" value="90000">
+        <label for="volatilityThreshold">网格间距/阈值 (USD):</label>
+        <input type="number" id="volatilityThreshold" value="2000">
+        <label for="priceSequenceJson">价格走向 (JSON数组格式):</label>
+        <textarea id="priceSequenceJson" placeholder='例如: [90000, 91000, 89000, 92000, 90000, 88000, 90000]'>[90000, 96000, 92000, 94000, 89000, 92000, 91000, 88000, 86000, 82000, 84000, 79000, 81000, 69000, 75000, 90000]</textarea>
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button onclick="startSimulation()" style="flex: 1;">运行模拟</button>
+            <button onclick="exportInputToClipboard()" style="flex: 1; background-color: #28a745;">导出输入</button>
+            <button onclick="exportLogToClipboard()" style="flex: 1; background-color: #ffc107; color: #333;">导出日志</button>
+        </div>
+    </div>
+
+    <div class="results-section">
+        <h2>模拟结果</h2>
+        <div class="charts-wrapper">
+            <div id="position-chart-container" class="chart-container"></div>
+            <div id="profit-chart-container" class="chart-container"></div>
+            <div id="btc-position-chart-container" class="chart-container"></div>
+        </div>
+        <h3>详细日志</h3>
+        <div class="table-container">
+            <table id="logTable">
+                <thead>
+                    <tr>
+                        <th>步骤</th><th>价格(USD)</th><th>多仓(BTC)</th><th>空仓(BTC)</th><th>净头寸(BTC)</th><th>资金费(USD)</th><th>已实现P&L(USD)</th><th>手续费(USD)</th><th>累计权益变化(USD)</th><th>操作说明</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <h3>结果汇总</h3>
+        <div id="summaryContainer" class="summary"> <p>请先运行模拟。</p> </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    // --- 全局状态和参数 ---
+    let state = {};
+    const corePositionSize = 0.5;
+    const volCaptureSize = 0.05;
+    const fundingPerCycle = 5;
+    const feeRate = 0.0005;
+    const fundingFrequency = 3;
+    const maxGridDeviationLongBtc = 0.5;
+    const maxGridDeviationShortBtc = 0.3; // Absolute value
+    const tolerance = 1e-9;
+
+    let positionChart = null; // 图表1: 仓位价值 vs 价格
+    let profitChart = null;   // 图表2: 收益分析
+    let btcPositionChart = null; // 图表3: BTC 仓位数量
+
+    // --- 导出功能 (与之前相同) ---
+    function exportInputToClipboard() { /* ... */ try { const priceSequence = JSON.parse(document.getElementById('priceSequenceJson').value || '[]'); const exportData = { initialPrice: parseFloat(document.getElementById('initialPrice').value), volatilityThreshold: parseFloat(document.getElementById('volatilityThreshold').value), priceSequence: priceSequence }; const formattedText = `策略输入参数\n------------------------\n初始/平衡价格: ${exportData.initialPrice} USD\n网格间距/阈值: ${exportData.volatilityThreshold} USD\n\n价格序列:\n${JSON.stringify(priceSequence, null, 2)}\n\n导出时间: ${new Date().toLocaleString()}`; navigator.clipboard.writeText(formattedText).then(() => alert('输入参数已复制到剪贴板！')).catch(err => alert('复制失败: ' + err)); } catch (e) { alert('无法解析价格序列JSON，请检查格式。'); } }
+    function exportLogToClipboard() { /* ... */ if (!state.log || state.log.length === 0) { alert('请先运行模拟以生成日志。'); return; } let csvContent = "步骤,价格(USD),多仓(BTC),空仓(BTC),净头寸(BTC),资金费(USD),已实现P&L(USD),手续费(USD),累计权益变化(USD),操作说明\n"; state.log.forEach(row => { const action = `"${row.action.replace(/"/g, '""')}"`; csvContent += [row.step, row.price, row.longSize, row.shortSize, row.netPos, row.funding, row.realizedPnl, row.fees, row.equityChange, action].join(',') + "\n"; }); navigator.clipboard.writeText(csvContent).then(() => alert('模拟日志 (CSV格式) 已复制到剪贴板！')).catch(err => alert('复制失败: ' + err)); }
+
+
+    // --- 核心模拟逻辑 ---
+    function initializeState(initialPrice, volThreshold) {
+        state = {
+            corePositionSize: corePositionSize,
+            longPositionSize: corePositionSize,
+            shortPositionSize: corePositionSize,
+            initialPrice: initialPrice,
+            lastBalancePrice: initialPrice,
+            volatilityThreshold: volThreshold,
+            activeGridTrades: [], // Array of { id: string, direction: 'LONG'|'SHORT', entryPrice: number, size: number, targetPrice: number }
+            nextTradeId: 1,
+            cumulativePnl: 0, cumulativeFunding: 0, cumulativeFees: 0, equityChange: 0,
+            log: [], fundingCycleCounter: 0, step: 0, lastPrice: initialPrice
+        };
+        const openingFees = calculateFees(state.corePositionSize, state.initialPrice) * 2;
+        // Log state *before* applying opening fees to have a clean step 0 balance
+        logState(state.initialPrice, `开仓 ${corePositionSize}L + ${corePositionSize}S @ ${state.initialPrice}`, 0, 0, 0, 'INITIAL'); // Step 0: Initial state before fees
+        // Now apply fees for step 1's log
+        state.cumulativeFees += openingFees;
+        state.equityChange -= openingFees;
+        state.step = 1; // Ready for first price processing
+    }
+
+    function calculateFees(size, price) { return Math.abs(size) * price * feeRate; }
+
+    // Added tradeType parameter
+    function logState(price, action, funding, realizedPnl, fees, tradeType = 'NONE') {
+        let netGridDeviation = 0;
+        state.activeGridTrades.forEach(trade => { netGridDeviation += (trade.direction === 'LONG' ? trade.size : -trade.size); });
+        state.longPositionSize = parseFloat((state.corePositionSize + Math.max(0, netGridDeviation)).toFixed(8));
+        state.shortPositionSize = parseFloat((state.corePositionSize + Math.max(0, -netGridDeviation)).toFixed(8));
+
+        const netPosition = state.longPositionSize - state.shortPositionSize;
+        const longValueUSD = state.longPositionSize * price;
+        const shortValueUSD = state.shortPositionSize * price;
+
+        state.cumulativePnl += realizedPnl;
+        state.cumulativeFunding += funding;
+        state.cumulativeFees += fees;
+        state.equityChange += (realizedPnl + funding - fees);
+
+        state.log.push({
+            step: state.step, price: price, action: action,
+            longSize: state.longPositionSize.toFixed(3), shortSize: state.shortPositionSize.toFixed(3),
+            netPos: netPosition.toFixed(3),
+            longValueUSD: longValueUSD.toFixed(0), shortValueUSD: shortValueUSD.toFixed(0),
+            funding: funding.toFixed(2), realizedPnl: realizedPnl.toFixed(2), fees: fees.toFixed(2),
+            equityChange: state.equityChange.toFixed(2),
+            tradeType: tradeType // Log the type of trade action
+        });
+    }
+
+    // !!! runStep with Precise P&L Tracking !!!
+    function runStep(price) {
+        let funding = 0;
+        let stepRealizedPnl = 0;
+        let stepFees = 0;
+        let actionDetail = "";
+        let currentTradeType = 'NONE'; // Track trade type for logging
+        const previousPrice = state.lastPrice;
+
+        // 1. Funding
+        state.fundingCycleCounter++;
+        if (state.fundingCycleCounter % fundingFrequency === 0) {
+            funding = fundingPerCycle;
+            actionDetail += "收到资金费; ";
+            if(currentTradeType==='NONE') currentTradeType = 'FUNDING';
+        }
+
+        // 2. Check for Closing Grid Trades (TP Hits)
+        let tradesToRemoveIndexes = [];
+        state.activeGridTrades.forEach((trade, index) => {
+            let closed = false;
+            if (trade.direction === 'LONG' && price >= trade.targetPrice) {
+                let pnl = trade.size * (trade.targetPrice - trade.entryPrice);
+                let fee = calculateFees(trade.size, price); // Use current price for closing fee
+                stepRealizedPnl += pnl;
+                stepFees += fee;
+                actionDetail += `网格平多仓(ID:${trade.id})@${price.toFixed(0)}->目标${trade.targetPrice}, P&L:${pnl.toFixed(0)}; `;
+                closed = true;
+                currentTradeType = 'CLOSE_LONG'; // Mark type
+            } else if (trade.direction === 'SHORT' && price <= trade.targetPrice) {
+                let pnl = trade.size * (trade.entryPrice - trade.targetPrice);
+                let fee = calculateFees(trade.size, price);
+                stepRealizedPnl += pnl;
+                stepFees += fee;
+                actionDetail += `网格平空仓(ID:${trade.id})@${price.toFixed(0)}->目标${trade.targetPrice}, P&L:${pnl.toFixed(0)}; `;
+                closed = true;
+                currentTradeType = 'CLOSE_SHORT'; // Mark type
+            }
+            if (closed) {
+                tradesToRemoveIndexes.push(index);
+            }
+        });
+         // Remove closed trades safely
+        for (let i = tradesToRemoveIndexes.length - 1; i >= 0; i--) {
+            state.activeGridTrades.splice(tradesToRemoveIndexes[i], 1);
+        }
+
+
+        // Recalculate current deviation AFTER closing trades
+        let currentNetGridDeviation = 0;
+        state.activeGridTrades.forEach(trade => { currentNetGridDeviation += (trade.direction === 'LONG' ? trade.size : -trade.size); });
+        currentNetGridDeviation = parseFloat(currentNetGridDeviation.toFixed(8));
+
+
+        // 3. Check for Opening New Grid Trades
+        // Check levels between previousPrice and current price
+        let checkPrice = previousPrice;
+        let stepDirection = Math.sign(price - previousPrice); // 1 for up, -1 for down, 0 for no change
+
+        if (stepDirection !== 0) {
+             // Determine levels to check based on direction
+             let startLevel, endLevel, levelStep;
+             if (stepDirection > 0) { // Price increased
+                 startLevel = Math.floor(previousPrice / state.volatilityThreshold) * state.volatilityThreshold + state.volatilityThreshold;
+                 endLevel = price;
+                 levelStep = state.volatilityThreshold;
+             } else { // Price decreased
+                 startLevel = Math.ceil(previousPrice / state.volatilityThreshold) * state.volatilityThreshold - state.volatilityThreshold;
+                 endLevel = price;
+                 levelStep = -state.volatilityThreshold;
+             }
+
+            // Iterate through potential trigger levels crossed
+             for (let level = startLevel; (stepDirection > 0 && level <= endLevel) || (stepDirection < 0 && level >= endLevel); level += levelStep) {
+
+                 if (level > state.lastBalancePrice + tolerance) { // Potential Short Entry Level crossed upwards
+                     const existingTrade = state.activeGridTrades.find(t => t.direction === 'SHORT' && Math.abs(t.entryPrice - level) < tolerance);
+                     if (!existingTrade && currentNetGridDeviation > -maxGridDeviationShortBtc + tolerance) {
+                         let entryPrice = level;
+                         let targetPrice = level - state.volatilityThreshold;
+                         let newTrade = { id: `S${state.nextTradeId++}`, direction: 'SHORT', entryPrice: entryPrice, size: volCaptureSize, targetPrice: targetPrice };
+                         let fee = calculateFees(volCaptureSize, price);
+                         stepFees += fee;
+                         state.activeGridTrades.push(newTrade);
+                         currentNetGridDeviation -= volCaptureSize;
+                         currentNetGridDeviation = parseFloat(currentNetGridDeviation.toFixed(8));
+                         actionDetail += `网格开空仓(ID:${newTrade.id})@${entryPrice.toFixed(0)}; `;
+                          if(currentTradeType==='NONE') currentTradeType = 'OPEN_SHORT';
+                     }
+                 } else if (level < state.lastBalancePrice - tolerance) { // Potential Long Entry Level crossed downwards
+                     const existingTrade = state.activeGridTrades.find(t => t.direction === 'LONG' && Math.abs(t.entryPrice - level) < tolerance);
+                     if (!existingTrade && currentNetGridDeviation < maxGridDeviationLongBtc - tolerance) {
+                         let entryPrice = level;
+                         let targetPrice = level + state.volatilityThreshold;
+                         let newTrade = { id: `L${state.nextTradeId++}`, direction: 'LONG', entryPrice: entryPrice, size: volCaptureSize, targetPrice: targetPrice };
+                         let fee = calculateFees(volCaptureSize, price);
+                         stepFees += fee;
+                         state.activeGridTrades.push(newTrade);
+                         currentNetGridDeviation += volCaptureSize;
+                         currentNetGridDeviation = parseFloat(currentNetGridDeviation.toFixed(8));
+                         actionDetail += `网格开多仓(ID:${newTrade.id})@${entryPrice.toFixed(0)}; `;
+                         if(currentTradeType==='NONE') currentTradeType = 'OPEN_LONG';
+                     }
+                 }
+             }
+        }
+
+
+        // 4. Record Log for the current step
+        let action = actionDetail.trim() || "-";
+        // Log if price changed OR if an action occurred
+        if (action !== "-" || funding > 0 || Math.abs(price - previousPrice) > tolerance) {
+            logState(price, action, funding, stepRealizedPnl, stepFees, currentTradeType);
+        }
+
+        // Update last price and increment step counter for next iteration
+        state.lastPrice = price;
+        state.step++;
+    }
+
+    // --- UI 更新 ---
+    function updateUI() { /* ... 与上一版本相同，读取 state.log ... */
+        // Update Table
+        const tableBody = document.getElementById('logTable').getElementsByTagName('tbody')[0];
+        tableBody.innerHTML = '';
+        if(state.log) {
+             state.log.forEach(row => {
+                 const newRow = tableBody.insertRow();
+                 newRow.insertCell().textContent = row.step;
+                 newRow.insertCell().textContent = parseFloat(row.price).toFixed(0);
+                 newRow.insertCell().textContent = row.longSize;
+                 newRow.insertCell().textContent = row.shortSize;
+                 newRow.insertCell().textContent = row.netPos;
+                 newRow.insertCell().textContent = row.funding;
+                 newRow.insertCell().innerHTML = `<span class="${parseFloat(row.realizedPnl) > 0 ? 'profit' : (parseFloat(row.realizedPnl) < 0 ? 'loss' : '')}">${row.realizedPnl}</span>`; // Show actual PnL
+                 newRow.insertCell().innerHTML = `<span class="loss">-${row.fees}</span>`;
+                 newRow.insertCell().innerHTML = `<strong class="${parseFloat(row.equityChange) > 0 ? 'profit' : (parseFloat(row.equityChange) < 0 ? 'loss' : '')}">${row.equityChange}</strong>`;
+                 newRow.insertCell().innerHTML = `<span class="action">${row.action}</span>`;
+             });
+        }
+
+        // Update Summary
+        const summaryDiv = document.getElementById('summaryContainer');
+        const lastLogEntry = state.log && state.log.length > 0 ? state.log[state.log.length - 1] : null;
+        // Use final values from state object which includes effects of last step
+        const finalStep = state.step -1; // Since step increments after logging
+        const finalEquity = state.equityChange.toFixed(2);
+        const finalLong = state.longPositionSize.toFixed(3);
+        const finalShort = state.shortPositionSize.toFixed(3);
+        const finalPnl = state.cumulativePnl.toFixed(2);
+        const finalFunding = state.cumulativeFunding.toFixed(2);
+        const finalFees = state.cumulativeFees.toFixed(2);
+
+
+        // Check if the last action was the final closing step
+        const isClosed = state.longPositionSize < tolerance && state.shortPositionSize < tolerance && finalStep > 0;
+        summaryDiv.innerHTML = `
+            <p><strong>模拟${isClosed ? '完成 (包含最终平仓)' : '结束时状态 (价格序列处理完毕)'}:</strong> 共 ${finalStep} 步</p>
+            <ul>
+                 <li>${isClosed ? '最终' : '当前'}累计权益变化: <strong class="${parseFloat(finalEquity) > 0 ? 'profit' : (parseFloat(finalEquity) < 0 ? 'loss' : '')}">${finalEquity} USD</strong></li>
+                 <li>累计已实现P&L (波动捕捉${isClosed ? '+最终平仓' : ''}): <span class="profit">${finalPnl} USD</span></li>
+                 <li>累计净资金费收入: <span class="funding">${finalFunding} USD</span></li>
+                 <li>累计手续费支出: <span class="loss">-${finalFees} USD</span></li>
+                 <li>${isClosed ? '最终' : '当前'}多单持仓: ${finalLong} BTC</li>
+                 <li>${isClosed ? '最终' : '当前'}空单持仓: ${finalShort} BTC</li>
+            </ul>
+             ${!isClosed ? '<p id="final-close-summary" class="note">以上为价格序列结束时的状态。最终盈亏需执行最终平仓操作。</p>' : ''}
+        `;
+
+
+        updatePositionChart();
+        updateProfitChart();
+        updateBtcPositionChart(); // Update the third chart
+    }
+
+    // --- 更新图表函数 ---
+    function updatePositionChart() { /* ... 与上一版本相同 ... */ if (!state.log || state.log.length === 0) { if (!positionChart) { chartDom = document.getElementById('position-chart-container'); positionChart = echarts.init(chartDom); } positionChart.setOption({ title: { text: '图表一: 仓位价值 (USD) 与 价格', left: 'center' }, tooltip: {}, legend: {top:'bottom'}, xAxis: {data:[]}, yAxis: [{},{}], series:[] }, true); return; } const steps = state.log.map(r => r.step); const prices = state.log.map(r => r.price); const longValuesUSD = state.log.map(r => parseFloat(r.longValueUSD)); const shortValuesUSD = state.log.map(r => parseFloat(r.shortValueUSD)); if (!positionChart) { chartDom = document.getElementById('position-chart-container'); positionChart = echarts.init(chartDom); }
+        // Prepare marker data
+        const markerData = state.log.filter(r => r.tradeType === 'OPEN_LONG' || r.tradeType === 'OPEN_SHORT').map(r => ({
+            name: r.tradeType === 'OPEN_LONG' ? '网格开多' : '网格开空',
+            value: [r.step, r.price],
+            symbol: r.tradeType === 'OPEN_LONG' ? 'triangle' : 'triangle', // Use triangle for both, color/rotation distinguishes
+             symbolRotate: r.tradeType === 'OPEN_SHORT' ? 180 : 0, // Rotate for sell
+            itemStyle: { color: r.tradeType === 'OPEN_LONG' ? 'green' : 'red' },
+            tradeInfo: r.action // Store action detail for tooltip
+        }));
+
+        var option1 = { title: { text: '图表一: 仓位价值 (USD) 与 价格 (含开仓标记)', left: 'center' }, tooltip: { trigger: 'axis', axisPointer: { type: 'cross' }, formatter: function (params) { let step = params[0].axisValueLabel; const logEntry = state.log.find(entry => entry.step == step); let price = logEntry ? logEntry.price : 0; let btcSizeL = logEntry ? logEntry.longSize : 'N/A'; let btcSizeS = logEntry ? logEntry.shortSize : 'N/A'; let tooltipString = `步骤 (Step): ${step}<br/>价格: ${echarts.format.addCommas(price.toFixed(0))} USD<br/>--------------------<br/>`; params.forEach(function (item) { let seriesName = item.seriesName; let value = item.value; let marker = item.marker; if (seriesName === '多单持仓价值(USD)') { tooltipString += `${marker} ${seriesName}: $${echarts.format.addCommas(value.toFixed(0))} (${btcSizeL} BTC)<br/>`; } else if (seriesName === '空单持仓价值(USD)') { tooltipString += `${marker} ${seriesName}: $${echarts.format.addCommas(value.toFixed(0))} (${btcSizeS} BTC)<br/>`; } else if (item.seriesType === 'scatter' && item.name) { tooltipString += `${marker} ${item.name} @ ${echarts.format.addCommas(item.value[1].toFixed(0))}<br/>`; } }); return tooltipString; } }, legend: { data: ['多单持仓价值(USD)', '空单持仓价值(USD)', '网格开仓'], top: 'bottom' }, grid: { left: '10%', right: '10%', bottom: '12%', containLabel: true }, xAxis: { type: 'category', boundaryGap: false, data: steps.map(String), name: '步骤 (Step)' }, yAxis: [ { type: 'value', name: '价格 (USD)', position: 'left', axisLabel: { formatter: '${value}' } }, { type: 'value', name: '仓位价值 (USD)', position: 'right', axisLabel: { formatter: '${value}' }, min: 0, max: function(value) { const maxL_USD = Math.max(...longValuesUSD, 0); const maxS_USD = Math.max(...shortValuesUSD, 0); return Math.max(maxL_USD, maxS_USD, 1) * 1.1 || 10000; } } ], series: [ { name: '价格(USD)', type: 'line', smooth: true, yAxisIndex: 0, lineStyle: { type: 'dashed', opacity: 0.4, width: 1.5 }, data: prices, showSymbol: false, legendHoverLink: false, tooltip: { show: false } }, { name: '多单持仓价值(USD)', type: 'line', smooth: true, yAxisIndex: 1, data: longValuesUSD, z: 2 }, { name: '空单持仓价值(USD)', type: 'line', smooth: true, yAxisIndex: 1, data: shortValuesUSD, z: 2 }, { name: '网格开仓', type: 'scatter', yAxisIndex: 0, // Attach markers to the price axis
+             data: markerData, symbolSize: 10, z: 5 /* Ensure markers are on top */ } ] }; positionChart.setOption(option1, true);
+     }
+    function updateProfitChart() { /* ... 与上一版本相同，数据源已是精确 P&L ... */ if (!state.log || state.log.length === 0) { if (!profitChart) { chartDom = document.getElementById('profit-chart-container'); profitChart = echarts.init(chartDom); } profitChart.setOption({ title: { text: '图表二: 收益分析 (USD)', left: 'center' }, tooltip: {}, legend: {top:'bottom'}, xAxis: {data:[]}, yAxis: {}, series:[] }, true); return; } const steps = state.log.map(r => r.step); const equityChanges = state.log.map(r => parseFloat(r.equityChange)); let runningPnl = 0; let runningFunding = 0; let runningFees = 0; let cumulativePnlData = []; let cumulativeFundingData = []; let cumulativeFeesData = []; state.log.forEach((logEntry, index) => { runningPnl += parseFloat(logEntry.realizedPnl); runningFunding += parseFloat(logEntry.funding); runningFees += parseFloat(logEntry.fees); cumulativePnlData.push(runningPnl); cumulativeFundingData.push(runningFunding); cumulativeFeesData.push(-runningFees); }); if (!profitChart) { chartDom = document.getElementById('profit-chart-container'); profitChart = echarts.init(chartDom); } var option2 = { title: { text: '图表二: 收益分析 (USD)', left: 'center' }, tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } }, legend: { data: ['累计权益变化', '累计波动P&L', '累计资金费', '累计手续费'], top: 'bottom' }, grid: { left: '10%', right: '8%', bottom: '12%', containLabel: true }, xAxis: { type: 'category', boundaryGap: false, data: steps.map(String), name: '步骤 (Step)' }, yAxis: { type: 'value', name: 'USD', axisLabel: { formatter: '${value}' } }, series: [ { name: '累计权益变化', type: 'line', smooth: true, data: equityChanges, itemStyle: { color: '#007bff' }, z: 3 }, { name: '累计波动P&L', type: 'line', smooth: true, data: cumulativePnlData, itemStyle: { color: '#28a745' } }, { name: '累计资金费', type: 'line', smooth: true, data: cumulativeFundingData, itemStyle: { color: '#17a2b8' } }, { name: '累计手续费', type: 'line', smooth: true, data: cumulativeFeesData, itemStyle: { color: '#dc3545' } } ] }; profitChart.setOption(option2, true); }
+
+    // --- 新增: 更新第三个图表：BTC仓位数量 ---
+    function updateBtcPositionChart() {
+         if (!state.log || state.log.length === 0) {
+              if (!btcPositionChart) { chartDom = document.getElementById('btc-position-chart-container'); btcPositionChart = echarts.init(chartDom); }
+              btcPositionChart.setOption({ title: { text: '图表三: BTC仓位数量变化', left: 'center' }, tooltip: {}, legend: {top:'bottom'}, xAxis: {data:[]}, yAxis: {}, series:[] }, true); return;
+         }
+
+        const steps = state.log.map(r => r.step);
+        const longSizes = state.log.map(r => parseFloat(r.longSize));
+        const shortSizes = state.log.map(r => parseFloat(r.shortSize));
+        const netPositions = state.log.map(r => parseFloat(r.netPos));
+
+        if (!btcPositionChart) {
+            chartDom = document.getElementById('btc-position-chart-container');
+            btcPositionChart = echarts.init(chartDom);
+        }
+
+        var option3 = {
+            title: { text: '图表三: BTC仓位数量变化', left: 'center' },
+            tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+            legend: { data: ['总多单(BTC)', '总空单(BTC)', '净头寸(BTC)'], top: 'bottom' },
+            grid: { left: '10%', right: '8%', bottom: '12%', containLabel: true },
+            xAxis: { type: 'category', boundaryGap: false, data: steps.map(String), name: '步骤 (Step)' },
+            yAxis: { type: 'value', name: 'BTC', axisLabel: { formatter: '{value} BTC' } },
+            series: [
+                { name: '总多单(BTC)', type: 'line', smooth: true, data: longSizes, itemStyle: { color: 'green' } },
+                { name: '总空单(BTC)', type: 'line', smooth: true, data: shortSizes, itemStyle: { color: 'red' } },
+                { name: '净头寸(BTC)', type: 'line', smooth: true, data: netPositions, itemStyle: { color: 'purple' }, lineStyle: { type: 'dashed' }}
+            ]
+        };
+        btcPositionChart.setOption(option3, true);
+    }
+
+
+    // --- 启动函数 (包含最终平仓) ---
+    function startSimulation() {
+        // ... (Input parsing same as previous version) ...
+         const initialPrice = parseFloat(document.getElementById('initialPrice').value); const volThreshold = parseFloat(document.getElementById('volatilityThreshold').value); const priceSequenceJson = document.getElementById('priceSequenceJson').value; let prices; try { prices = JSON.parse(priceSequenceJson); if (!Array.isArray(prices) || !prices.every(p => typeof p === 'number')) { throw new Error("价格序列必须是数字数组。"); } if (prices.length === 0) { if (!isNaN(initialPrice) && initialPrice > 0) { prices = [initialPrice]; } else { throw new Error("价格序列不能为空，或需要有效的初始价格。"); } } } catch (error) { alert("无法解析价格序列JSON: " + error.message + "\n请确保使用方括号包裹数字，用逗号分隔，例如: [90000, 91000, 89000]"); return; } if (isNaN(initialPrice) || isNaN(volThreshold) || initialPrice <= 0 || volThreshold <= 0) { alert("请输入有效的初始价格和波动阈值 (必须大于0)。"); return; }
+
+
+        initializeState(initialPrice, volThreshold); // Initialize state, logs step 0
+
+        // Run simulation for each price point
+        prices.forEach((price, index) => {
+            runStep(price);
+        });
+
+        // --- Final Closing Step ---
+        if (state.log.length > 1) { // Ensure simulation actually ran past step 0
+            const lastLog = state.log[state.log.length - 1];
+            const closingPrice = lastLog.price;
+            let finalRealizedPnl = 0;
+            let closingFees = 0;
+            let finalAction = `最终平仓 @ ${closingPrice}: `;
+
+            // Close Core Positions
+            if (state.corePositionSize > tolerance) {
+                 // Core P&L nets to zero relative to initial price
+                 closingFees += calculateFees(state.corePositionSize, closingPrice) * 2;
+                 finalAction += `平核心(±${state.corePositionSize.toFixed(3)} BTC); `;
+            }
+
+            // Close Remaining Active Grid Trades
+            let remainingGridTrades = [...state.activeGridTrades]; // Copy
+             finalAction += "平剩余网格: ";
+            remainingGridTrades.forEach(trade => {
+                 let pnl = 0;
+                 if (trade.direction === 'LONG') {
+                     pnl = trade.size * (closingPrice - trade.entryPrice);
+                     finalAction += `多(ID:${trade.id}, P:${pnl.toFixed(0)}); `;
+                 } else { // SHORT
+                     pnl = trade.size * (trade.entryPrice - closingPrice);
+                     finalAction += `空(ID:${trade.id}, P:${pnl.toFixed(0)}); `;
+                 }
+                 finalRealizedPnl += pnl;
+                 closingFees += calculateFees(trade.size, closingPrice);
+            });
+            if(remainingGridTrades.length === 0) finalAction += "无;";
+
+
+            // Log the final closing step ONLY if there were positions to close
+             if (Math.abs(lastLog.longSize) > tolerance || Math.abs(lastLog.shortSize) > tolerance) {
+                  // Update state to reflect closing BEFORE logging
+                  state.activeGridTrades = [];
+                  state.longPositionSize = 0; // Set final positions to 0
+                  state.shortPositionSize = 0;
+                  // Log using the state *before* zeroing positions but *after* calculating PnL/Fees
+                  logState(closingPrice, finalAction.trim(), 0, finalRealizedPnl, closingFees, 'FINAL');
+                   // Increment step counter AFTER processing step
+                  state.step++;
+             }
+
+
+        } else {
+             document.getElementById('summaryContainer').innerHTML = "<p>模拟未运行或无价格数据。</p>";
+        }
+
+        // Update UI one last time to show final state
+        updateUI();
+    }
+
+     // 初始化图表加载时
+     document.addEventListener('DOMContentLoaded', (event) => { /* ...与上一版本相同，初始化三个图表实例... */ try { chartDomPos = document.getElementById('position-chart-container'); if(chartDomPos) { positionChart = echarts.init(chartDomPos); positionChart.setOption({ title: { text: '图表一: 仓位价值 (USD) 与 价格', left: 'center' }, tooltip: {}, legend: {top:'bottom'}, xAxis: {data:[]}, yAxis: [{},{}], series:[] }, true); } else { console.error("Position chart container not found"); } chartDomProfit = document.getElementById('profit-chart-container'); if(chartDomProfit) { profitChart = echarts.init(chartDomProfit); profitChart.setOption({ title: { text: '图表二: 收益分析 (USD)', left: 'center' }, tooltip: {}, legend: {top:'bottom'}, xAxis: {data:[]}, yAxis: {}, series:[] }, true); } else { console.error("Profit chart container not found"); } chartDomBtcPos = document.getElementById('btc-position-chart-container'); if(chartDomBtcPos) { btcPositionChart = echarts.init(chartDomBtcPos); btcPositionChart.setOption({ title: { text: '图表三: BTC仓位数量变化', left: 'center' }, tooltip: {}, legend: {top:'bottom'}, xAxis: {data:[]}, yAxis: {}, series:[] }, true); } else { console.error("BTC Position chart container not found"); } window.addEventListener('resize', function() { if (positionChart) { positionChart.resize(); } if (profitChart) { profitChart.resize(); } if (btcPositionChart) { btcPositionChart.resize(); } }); } catch (e) { console.error("ECharts initialization failed:", e); alert("图表初始化失败，请检查浏览器控制台获取更多信息。"); } });
+
+</script>
+
+</div>
+</body>
+</html>

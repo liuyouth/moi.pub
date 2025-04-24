@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>点积与向量方向演示</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -198,6 +200,7 @@
             <div class="stage-nav">
                 <button class="stage-btn active" onclick="switchStage(1)">第一阶段：认识向量</button>
                 <button class="stage-btn" onclick="switchStage(2)">第二阶段：点积与方向</button>
+                <button class="stage-btn" onclick="switchStage(3)">第三阶段：向量投影</button>
             </div>
 
             <div class="container">
@@ -233,6 +236,24 @@
                                     <span id="forwardResult" style="font-size: 1.2em; font-weight: bold;">
                                         向量B <span class="direction-result">在</span> 向量A的前方
                                     </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stage" id="stage3">
+                        <div class="canvas-container">
+                            <div class="canvas-title">向量投影演示</div>
+                            <canvas id="projectionCanvas" width="600" height="300"></canvas>
+                            
+                            <div class="result-controls">
+                                <div class="result">
+                                    投影长度：<span id="projectionLength" class="dot-product-value">0.00</span>
+                                </div>
+                                <div class="controls">
+                                    <span>向量B角度：</span>
+                                    <input type="range" id="projectionSlider" min="0" max="360" value="45">
+                                    <span id="projectionAngle" class="angle-value">45°</span>
                                 </div>
                             </div>
                         </div>
@@ -316,6 +337,26 @@
                                 <li>判断物体的朝向</li>
                                 <li>计算光照强度</li>
                                 <li>检测碰撞</li>
+                            </ul>
+                        </section>
+                    </div>
+
+                    <div class="stage" id="stage3-exp">
+                        <section id="vector-projection">
+                            <h2>向量投影</h2>
+                            <p>向量投影是将一个向量投射到另一个向量上的过程。投影后的向量与被投影向量方向相同。</p>
+                            <p>数学表达式：\[\text{proj}_{\vec{A}}\vec{B} = \frac{\vec{A} \cdot \vec{B}}{|\vec{A}|^2}\vec{A}\]</p>
+                            <p>其中：</p>
+                            <ul>
+                                <li>\(proj_{\vec{A}}\vec{B}\) 是向量B在向量A上的投影</li>
+                                <li>\(\vec{A} \cdot \vec{B}\) 是两个向量的点积</li>
+                                <li>\(|\vec{A}|\) 是向量A的长度</li>
+                            </ul>
+                            <p>投影的应用：</p>
+                            <ul>
+                                <li>分解力：在物理中分解一个力到特定方向</li>
+                                <li>计算阴影：在计算机图形学中计算物体投影</li>
+                                <li>信号处理：将信号分解为正交分量</li>
                             </ul>
                         </section>
                     </div>
@@ -604,10 +645,114 @@
             drawForwardDemo();
         });
 
+        // 向量投影相关函数
+        function calculateProjection(vectorA, vectorB) {
+            // 计算点积
+            const dotProduct = vectorA.length * vectorB.length * Math.cos((vectorB.angle - vectorA.angle));
+            // 计算投影长度
+            const projectionLength = dotProduct / vectorA.length;
+            return projectionLength;
+        }
+
+        function drawProjection() {
+            const canvas = document.getElementById('projectionCanvas');
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制参考网格
+            ctx.strokeStyle = '#eee';
+            ctx.setLineDash([5, 5]);
+            for(let i = 0; i <= canvas.width; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+            for(let i = 0; i <= canvas.height; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+            
+            // 获取当前角度
+            const angle = parseFloat(document.getElementById('projectionSlider').value) * Math.PI / 180;
+            const vectorLength = 100;
+            
+            // 绘制向量A（固定水平）
+            ctx.strokeStyle = '#2ecc71';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX - vectorLength, centerY);
+            ctx.lineTo(centerX + vectorLength, centerY);
+            ctx.stroke();
+            
+            // 绘制向量B
+            const endX = centerX + vectorLength * Math.cos(angle);
+            const endY = centerY + vectorLength * Math.sin(angle);
+            ctx.strokeStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+            
+            // 计算并绘制投影向量
+            const projectionLength = calculateProjection(
+                {length: vectorLength, angle: 0},
+                {length: vectorLength, angle: angle}
+            );
+            
+            ctx.strokeStyle = '#3498db';
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(centerX + projectionLength, centerY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // 绘制箭头
+            const arrowSize = 10;
+            const arrowAngle = Math.PI / 6;
+            
+            // 向量A的箭头
+            ctx.strokeStyle = '#2ecc71';
+            ctx.beginPath();
+            ctx.moveTo(centerX + vectorLength, centerY);
+            ctx.lineTo(centerX + vectorLength - arrowSize * Math.cos(-arrowAngle), centerY - arrowSize * Math.sin(-arrowAngle));
+            ctx.moveTo(centerX + vectorLength, centerY);
+            ctx.lineTo(centerX + vectorLength - arrowSize * Math.cos(arrowAngle), centerY - arrowSize * Math.sin(arrowAngle));
+            ctx.stroke();
+            
+            // 向量B的箭头
+            ctx.strokeStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(endX - arrowSize * Math.cos(angle - arrowAngle), endY - arrowSize * Math.sin(angle - arrowAngle));
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(endX - arrowSize * Math.cos(angle + arrowAngle), endY - arrowSize * Math.sin(angle + arrowAngle));
+            ctx.stroke();
+            
+            // 更新投影长度显示
+            document.getElementById('projectionLength').textContent = Math.abs(projectionLength).toFixed(2);
+        }
+
+        // 添加投影滑块监听器
+        document.getElementById('projectionSlider').addEventListener('input', function() {
+            const angle = this.value;
+            document.getElementById('projectionAngle').textContent = angle + '°';
+            drawProjection();
+        });
+
         // 初始显示
         updateDisplay();
         drawPointToVector();
         drawForwardDemo();
+        drawProjection();
 
         // 添加阶段切换功能
         function switchStage(stageNum) {

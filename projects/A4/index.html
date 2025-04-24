@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>坚持 - 励志墙</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #ffffff;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        .frame {
+            width: 210mm; /* A4宽度 */
+            height: 297mm; /* A4高度 */
+            background: #ffffff;
+            border: 15px solid #000000;
+            padding: 20px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .main-text {
+            font-size: 120px;
+            font-weight: bold;
+            color: #000000;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 2;
+        }
+
+        .subtitle {
+            position: absolute;
+            color: #333333;
+            opacity: 0.8;
+            transform-origin: center;
+        }
+
+        .s1 { top: 20%; left: 25%; font-size: 24px; transform: rotate(-15deg); }
+        .s2 { top: 30%; right: 20%; font-size: 28px; transform: rotate(10deg); }
+        .s3 { bottom: 35%; left: 15%; font-size: 22px; transform: rotate(-5deg); }
+        .s4 { bottom: 25%; right: 25%; font-size: 26px; transform: rotate(15deg); }
+        .s5 { top: 45%; left: 30%; font-size: 20px; transform: rotate(5deg); }
+        .s6 { bottom: 40%; right: 15%; font-size: 24px; transform: rotate(-10deg); }
+        .s7 { top: 60%; left: 20%; font-size: 22px; transform: rotate(8deg); }
+        .s8 { bottom: 15%; right: 30%; font-size: 26px; transform: rotate(-8deg); }
+
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            .frame {
+                border: 15px solid #000000 !important;
+                margin: 0;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="frame">
+        <div class="main-text">坚持</div>
+        <div class="subtitle s1">每一步都是进步</div>
+        <div class="subtitle s2">相信自己的选择</div>
+        <div class="subtitle s3">永不言弃</div>
+        <div class="subtitle s4">突破自我</div>
+        <div class="subtitle s5">持之以恒</div>
+        <div class="subtitle s6">勇往直前</div>
+        <div class="subtitle s7">坚定信念</div>
+        <div class="subtitle s8">追逐梦想</div>
+    </div>
+</body>
+</html>

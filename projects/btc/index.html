@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>资金费率套利与波动对冲策略模拟</title>
+    <style>
+        body { font-family: sans-serif; margin: 15px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; font-size: 0.9em;}
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top;}
+        th { background-color: #f2f2f2; position: sticky; top: 0; z-index: 1;}
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        h1, h2 { color: #333; text-align: center;}
+        .summary { background-color: #eef; padding: 15px; border-radius: 5px; margin-top: 20px;}
+        .note { font-size: 0.8em; color: #777; margin-top: 15px;}
+        .action { color: blue; font-weight: bold;}
+        .profit { color: green; }
+        .loss { color: red; }
+        .funding { color: darkcyan; }
+        .table-container { max-height: 600px; overflow-y: auto; width: 100%; margin-top: 20px; border: 1px solid #ccc;}
+    </style>
+</head>
+<body>
+
+<h1>资金费率套利与波动对冲策略模拟</h1>
+
+<h2>策略参数设定:</h2>
+<ul>
+    <li><strong>核心仓位:</strong> 0.5 BTC 多单 + 0.5 BTC 空单</li>
+    <li><strong>开仓价格:</strong> $90,000 USD</li>
+    <li><strong>杠杆:</strong> 5x (参考)</li>
+    <li><strong>净资金费收入(假设):</strong> +$5 USD / 8小时</li>
+    <li><strong>波动捕捉阈值:</strong> +/- $2,000 USD (围绕 90k)</li>
+    <li><strong>波动捕捉规模:</strong> 0.05 BTC</li>
+    <li><strong>手续费(假设):</strong> 0.05%</li>
+</ul>
+
+<h2>模拟过程表格:</h2>
+<div class="table-container">
+<table>
+    <thead>
+        <tr>
+            <th>阶段</th>
+            <th>事件/时间</th>
+            <th>价格 (k USD)</th>
+            <th>多单持仓 (BTC)</th>
+            <th>空单持仓 (BTC)</th>
+            <th>净头寸 (BTC)</th>
+            <th>资金费 (+/- USD)</th>
+            <th>已实现盈亏 (USD)</th>
+            <th>手续费 (USD)</th>
+            <th>累计权益变化 (USD)</th>
+            <th>触发动作及备注</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>0</td>
+            <td>开始</td>
+            <td>90</td>
+            <td>0.50</td>
+            <td>0.50</td>
+            <td>0.00</td>
+            <td>0</td>
+            <td>0</td>
+            <td>45.00</td> <td class="loss">-45.00</td>
+            <td class="action">开仓 0.5L + 0.5S @ 90k.</td>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>+8 小时</td>
+            <td>91</td>
+            <td>0.50</td>
+            <td>0.50</td>
+            <td>0.00</td>
+            <td class="funding">+5</td>
+            <td>0</td>
+            <td>0</td>
+            <td class="loss">-40.00</td> <td>收到资金费. (多单UPL +500, 空单UPL -500, 相互抵消)</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>+16 小时</td>
+            <td>89</td>
+            <td>0.50</td>
+            <td>0.50</td>
+            <td>0.00</td>
+            <td class="funding">+5</td>
+            <td>0</td>
+            <td>0</td>
+            <td class="loss">-35.00</td> <td>收到资金费. (多单UPL -500, 空单UPL +500, 相互抵消)</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td>价格触及 92k</td>
+            <td>92</td>
+            <td>0.50</td>
+            <td>0.55</td> <td>-0.05</td>
+            <td class="funding">+5</td> <td>0</td>
+            <td>2.30</td> <td class="loss">-32.30</td> <td class="action">触发波动捕捉: 卖出 0.05 BTC @ 92k. 挂买单 0.05 BTC @ 90k (止盈).</td>
+        </tr>
+         <tr>
+            <td>4</td>
+            <td>+8 小时 (at 92k)</td>
+            <td>92</td>
+            <td>0.50</td>
+            <td>0.55</td>
+            <td>-0.05</td>
+            <td class="funding">+5</td> <td>0</td>
+            <td>0</td>
+            <td class="loss">-27.30</td> <td>收到资金费. (核心仓位UPL抵消, 额外空单UPL为0)</td>
+        </tr>
+        <tr>
+            <td>5</td>
+            <td>价格回到 90k</td>
+            <td>90</td>
+            <td>0.50</td>
+            <td>0.50</td> <td>0.00</td>
+            <td class="funding">+5</td> <td class="profit">+100</td> <td>2.25</td> <td class="profit">+75.45</td> <td class="action">触发止盈: 买入 0.05 BTC @ 90k, 平掉额外空单. 实现波动利润.</td>
+        </tr>
+        <tr>
+            <td>6</td>
+            <td>+8 小时 (at 90k)</td>
+            <td>90</td>
+            <td>0.50</td>
+            <td>0.50</td>
+            <td>0.00</td>
+            <td class="funding">+5</td>
+            <td>0</td>
+            <td>0</td>
+            <td class="profit">+80.45</td> <td>收到资金费. 恢复核心对冲状态.</td>
+        </tr>
+        <tr>
+            <td>7</td>
+            <td>价格触及 88k</td>
+            <td>88</td>
+            <td>0.55</td> <td>0.50</td>
+            <td>+0.05</td>
+            <td class="funding">+5</td> <td>0</td>
+            <td>2.20</td> <td class="profit">+83.25</td> <td class="action">触发波动捕捉: 买入 0.05 BTC @ 88k. 挂卖单 0.05 BTC @ 90k (止盈).</td>
+        </tr>
+         <tr>
+            <td>8</td>
+            <td>+8 小时 (at 88k)</td>
+            <td>88</td>
+            <td>0.55</td>
+            <td>0.50</td>
+            <td>+0.05</td>
+            <td class="funding">+5</td>
+            <td>0</td>
+            <td>0</td>
+            <td class="profit">+88.25</td> <td>收到资金费. (核心仓位UPL抵消, 额外多单UPL为0)</td>
+        </tr>
+         <tr>
+            <td>9</td>
+            <td>价格回到 90k</td>
+            <td>90</td>
+            <td>0.50</td> <td>0.50</td>
+            <td>0.00</td>
+            <td class="funding">+5</td> <td class="profit">+100</td> <td>2.25</td> <td class="profit">+191.00</td> <td class="action">触发止盈: 卖出 0.05 BTC @ 90k, 平掉额外多单. 实现波动利润.</td>
+        </tr>
+         <tr>
+            <td>10</td>
+            <td>+8 小时 (at 90k)</td>
+            <td>90</td>
+            <td>0.50</td>
+            <td>0.50</td>
+            <td>0.00</td>
+            <td class="funding">+5</td>
+            <td>0</td>
+            <td>0</td>
+            <td class="profit">+196.00</td> <td>收到资金费. 恢复核心对冲状态.</td>
+        </tr>
+    </tbody>
+</table>
+</div>
+
+<div class="summary">
+<h2>模拟总结 (至阶段10):</h2>
+<ul>
+    <li><strong>累计权益变化:</strong> <strong class="profit">+196.00 USD</strong></li>
+    <li><strong>主要收益来源:</strong> 净资金费收入 (10次 * $5 = $50) + 波动捕捉利润 (2次 * $100 = $200)</li>
+    <li><strong>总成本:</strong> 开仓手续费 ($45) + 波动捕捉手续费 ($2.3 + $2.25 + $2.2 + $2.25 = $9.00) = $54.00</li>
+    <li><strong>计算验证:</strong> $50 + $200 - $54.00 = $196.00 (与最终累计权益变化一致)</li>
+    <li><strong>最终仓位:</strong> 0.5 BTC 多单 + 0.5 BTC 空单 (核心对冲状态)</li>
+</ul>
+</div>
+
+<p class="note"><strong>注意:</strong> 此模拟基于简化的假设，特别是净资金费收入固定为每次$5。真实的资金费率会随市场变化，可能为负。手续费为估算。未实现盈亏(UPL)因多空大致抵消未列入权益变化。核心目的是展示策略逻辑、操作流程和权益累积方式。</p>
+
+</body>
+</html>
